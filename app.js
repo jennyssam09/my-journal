@@ -125,7 +125,7 @@ const SCHEMAS = {
       { key: 'sum', label: '요약 3줄 - 선택', type: 'multi', keys: ['sum1', 'sum2', 'sum3'], placeholders: ['1. What happened', '2. Why it matters', "3. What's next / my takeaway"], hint: '영어로 한두 줄만 써도 저장돼요.' },
     ],
   },
-  // 💬 클로드에게 받은 피드백: scope('all'|'violin'|'exercise'|'econ'|'english'|'drawing') / period('day'|'week'|'month'|'card') / rangeStart·rangeEnd / targetId(카드에서 보낸 기록) / question / text(붙여 넣은 답변) / strengths(잘한 점 줄 목록)
+  // 💬 클로드에게 받은 피드백: scope('all'|'violin'|'econ'|'english'|'drawing' · 예전에 저장된 'exercise' 도 있어요) / period('day'|'week'|'month'|'card') / rangeStart·rangeEnd / targetId(카드에서 보낸 기록) / question / text(붙여 넣은 답변) / strengths(잘한 점 줄 목록)
   //   (예전에 저장한 todo·todoDone·todoHidden 은 화면에서만 빠졌고 값은 그대로 남아 있어요. RETIRED 참고)
   claudeFeedback: {
     label: '클로드 피드백',
@@ -270,14 +270,11 @@ const SEASON_DECOR = ['⛄', '🧣', '🌱', '🌸', '🌿', '☔', '🍉', '�
 //   🌈 전체는 기록이 있는 영역만 "── 🎻 바이올린 ──" 처럼 나누어 한 글로 모아요.
 const CLAUDE_SCOPES = [
   { id: 'all', icon: '🌈', label: '전체',
-    info: '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 운동, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
+    info: '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
     request: "맨 위에 '이번 기간 한 줄 총평'을 쓰고, 기록이 있는 영역만 영역별로 잘한 점과 달라진 점을 짧게 써 줘. 경제 영역은 한 줄 메모에 나온 개념을 쉽게 풀어 줘." },
   { id: 'violin', icon: '🎻', label: '바이올린',
     info: '바이올린 취미 4년차(메인 취미). 비브라토를 배우는 중이고, 쉬었다 하다를 반복해서 기본기가 얕은 편이에요. 교재와 곡은 기록에 나와요. 평일엔 밤늦게 짧게 연습해요.',
     request: '교재·곡별로 연습 흐름을 봐 주고, 곡별 템포가 바뀌었으면 짚어 줘.' },
-  { id: 'exercise', icon: '🧘', label: '운동',
-    info: '운동을 가볍게 해요. 평일은 밤 11시쯤 일이 끝나서 운동 시간이 들쑥날쑥해요.',
-    request: '몸에 무리 없는 흐름인지 봐 줘.' },
   { id: 'econ', icon: '📚', label: '경제 루틴',
     info: '경제 공부 입문 중이에요. 경제 팟캐스트와 뉴스레터(잘쓸레터, 머니레터)로 루틴을 만들고 있어요.',
     request: "한 줄 메모에 나온 경제 개념을 하나씩 쉽게 풀어 줘(왜 그런지 + 내 생활·돈과 어떻게 이어지는지, 2~3줄). 메모가 질문이면 답도 간단히, 잘못 이해한 부분이 있으면 부드럽게 바로잡아 줘. 용어 노트에 적어 둘 만한 용어가 있으면 '용어 — 쉬운 설명' 형식으로 1~2개 알려 줘." },
@@ -295,15 +292,12 @@ const CLAUDE_STAMP_ASK = "마지막에 '도장 문구:' 아래에 다음 기록 
 // 예전 기본값 (이 글 그대로 저장돼 있으면 "고치지 않은 것"으로 보고 새 기본값을 따라가요. 조금이라도 고친 문구는 그대로 남아요)
 const CLAUDE_OLD_DEFAULTS = {
   all: {
-    info: ['여러 취미를 기록하고 있어요. 바이올린(메인 취미), 요가·슬로조깅, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.'],
+    info: ['여러 취미를 기록하고 있어요. 바이올린(메인 취미), 요가·슬로조깅, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
+      '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 운동, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.'],
   },
   violin: {
     info: ['바이올린 취미 4년차(메인 취미). 스즈키 4권 수준. 지금 비브라토 배우는 중. 쉬었다 하다를 반복해서 기본기가 얕고 연습량도 많지 않음. 평일은 밤늦게 짧게 연습하는 편.'],
     request: ['아래 기록을 보고 부담 없는 다음 연습을 제안해 줘.'],
-  },
-  exercise: {
-    info: ['요가와 슬로조깅을 가볍게 하는 중. 평일은 밤늦게 일이 끝남.', '요가와 슬로조깅을 가볍게 해요. 평일은 밤 11시쯤 일이 끝나서 운동 시간이 들쑥날쑥해요.'],
-    request: ['아래 기록을 보고 무리 없는 다음 루틴을 제안해 줘.'],
   },
   econ: {
     info: ['경제 공부 입문 중. 경제 팟캐스트와 뉴스레터(잘쓸레터, 머니레터)로 루틴을 만드는 중.'],
@@ -552,13 +546,13 @@ const ui = {
   termQuery: '',      // 용어 노트: 찾는 말
   noteDraft: null,    // 경제 루틴 "오늘 한 줄"에 쓰는 중이지만 아직 저장하지 않은 글 { date, text }
   noteSavedUntil: 0,  // 한 줄을 저장한 직후 "저장됨 ✓"를 보여 주는 시각
-  claudePeriod: 'day', // 🤖 클로드 피드백 ① 보내기: 기간 day | week | month
-  claudeScope: 'all', // 범위 all(🌈 전체) | violin | exercise | econ | english | drawing
+  claudePeriod: 'week', // 🤖 클로드 피드백 ① 보내기: 기간 day(오늘) | week(지난주) | month(지난달). 처음 열 때는 지난주 (직접 고르면 그 선택을 따라요)
+  claudeScope: 'all', // 범위 all(🌈 전체) | violin | econ | english | drawing
   claudeQuestion: {}, // 범위마다 "이번에 특히 물어볼 것" (피드백을 저장하면 비워져요)
   claudePending: null, // 복사한 뒤 받은 답변을 저장할 때 쓰는 범위·기간 (카드에서 보냈으면 targetId 도 있어요)
   fbOpen: false,      // ② 받은 답변 저장 칸이 펼쳐져 있는지 (복사하면 저절로 펼쳐지고, 저장하면 접혀요)
   fbSaveScope: null,  // ② 에서 작은 칩으로 바꾼 범위 (없으면 복사한 범위)
-  fbScope: 'all',     // ③ 받은 피드백 모아보기의 범위 칩: all | violin | exercise | econ | english | drawing
+  fbScope: 'all',     // ③ 받은 피드백 모아보기의 범위 칩: all | violin | econ | english | drawing
   fbCount: 5,         // ③ 에 보이는 개수 (처음 5개, "더 보기"로 5개씩)
   fbOpenText: new Set(), // 답변 "더 보기"를 펼쳐 둔 피드백
   query: '',
@@ -2127,7 +2121,35 @@ function weekTableHTML(model, opts = {}) {
     ${anyUntimed ? `<div class="wkt-axis2">시간 미정</div>${untimed.map((u, d) => `<div class="wkt-un">${u.map((b) => chip(b, d)).join('')}</div>`).join('')}` : ''}
   </div></div>
   ${legend}
-  ${memo ? `<p class="meta wkt-memo">메모: ${esc(memo)}</p>` : ''}`;
+  ${memoHTML(memo)}`;
+}
+
+// 그 주 메모를 보여 줄 때만 "; " 로 나눠서 한 줄에 하나씩 보여요. (저장된 메모는 지금처럼 한 줄 글자 그대로예요)
+//   첫 토막 맨 앞의 "N주차 · K단계"(또는 "K단계")는 맨 윗줄에 제목처럼 두고, 그 뒤 " · " 다음 내용은 아랫줄부터 시작해요.
+//   각 줄 맨 앞의 요일(일~토)은 운동 블록과 같은 뮤트톤 파랑으로 눈에 띄게 해요. "; " 가 없는 예전 메모(예: "1단계")는 지금처럼 "메모: …" 한 줄이에요.
+const MEMO_HEAD = /^((?:\d+\s*주차\s*·\s*)?\d+\s*단계)(?:\s*·\s*(.*))?$/;
+function memoParts(memo) {
+  const chunks = String(memo || '').split(/;\s+/).map((s) => s.trim()).filter(Boolean);
+  const lines = [];
+  let head = '';
+  if (chunks.length) {
+    const m = MEMO_HEAD.exec(chunks[0]);
+    if (m) { head = m[1]; chunks.shift(); if (m[2]) lines.push(m[2].trim()); }
+  }
+  lines.push(...chunks);
+  return { head, lines };
+}
+function memoHTML(memo) {
+  const text = String(memo || '').trim();
+  if (!text) return '';
+  if (!/;\s+/.test(text.replace(/;\s*$/, ''))) return `<p class="meta wkt-memo">메모: ${esc(text)}</p>`; // "; " 가 없는 예전 메모는 지금처럼 한 줄 그대로예요
+  const { head, lines } = memoParts(text);
+  if (!lines.length) return `<p class="meta wkt-memo">메모: ${esc(text)}</p>`;
+  const row = (t) => {
+    const m = /^([일월화수목금토])\s+(.+)$/.exec(t);
+    return m ? `<span class="wkm-l wkm-day"><b class="wkm-d">${m[1]}</b>${esc(m[2])}</span>` : `<span class="wkm-l">${esc(t)}</span>`;
+  };
+  return `<div class="meta wkt-memo wkt-memo-lines" role="note" aria-label="메모">${head ? `<span class="wkm-h">${esc(head)}</span>` : ''}${lines.map(row).join('')}</div>`;
 }
 
 /* ---- 화면 (항상 표) ---- */
@@ -2144,7 +2166,7 @@ function renderWeek() {
   for (let d = 0; d < 7; d += 1) dayChecks(addDays(sun, d), d, exBlocksOf(sun, d), plan).forEach((on, i) => { if (on) checks[`${d}:${i}`] = true; });
   view.innerHTML = `
     <h2 class="page-title">이번 주</h2>
-    <p class="page-sub">과외 일정과 이번 주 운동을 한눈에 봐요. 운동은 📥로 붙여 넣은 것만 표에 보이고, 했다고 블록을 한 번만 눌러요. 표에 없던 운동은 ＋ 운동 기록으로, 그날 기록을 보고 고치려면 요일 머리(일·월…)를 눌러요. 점수나 비교는 없어요.</p>
+    <p class="page-sub">과외 일정과 이번 주 운동을 한눈에 봐요. 운동은 📥로 붙여 넣은 것만 표에 보이고, 했다고 블록을 한 번만 눌러요. 그날 기록을 보거나 운동을 더 적으려면 요일 머리(일·월…)를 눌러요. 점수나 비교는 없어요.</p>
     <p class="meta wkp-hours">${esc(tutorTotalText(tutorTotals(sun)))}</p>
     <div class="wkp-head">
       ${weekBtnHTML(sun === thisWeek)}
@@ -2153,7 +2175,6 @@ function renderWeek() {
       <button type="button" class="btn ghost small" data-act="wkShift" data-d="1" aria-label="다음 주">▶</button>
     </div>
     <div class="wkp-bar">
-      <button type="button" class="btn small" data-act="add" data-type="workout">＋ 운동 기록</button>
       <button type="button" class="btn ghost small" data-act="wkAi">📥 클로드 시간표 붙여 넣기</button>
     </div>
     ${weekTableHTML(weekModel(sun, null), { checks })}
@@ -2598,7 +2619,7 @@ const PRAISE_BAD = /[0-9０-９]|보다|지난|목표|점수|대비|비교|평�
 const praiseOk = (t) => { const x = String(t || '').trim(); return x.length >= 2 && x.length <= 60 && !PRAISE_BAD.test(x); };
 
 const STAMP_AREA_LABEL = { practice: '바이올린', lesson: '바이올린', workout: '운동', routine: '경제', english: '영어', art: '그림' };
-const STAMP_AREA_SCOPE = { practice: 'violin', lesson: 'violin', workout: 'exercise', routine: 'econ', english: 'english', art: 'drawing' };
+const STAMP_AREA_SCOPE = { practice: 'violin', lesson: 'violin', workout: 'all', routine: 'econ', english: 'english', art: 'drawing' }; // 운동은 클로드 피드백 범위가 없어서 🌈 전체로 받은 잘한 점만 써요
 // 그 기록에 맞춘 문장들 (조건이 맞는 것만)
 function contextPraise(rec) {
   const out = [];
@@ -3317,10 +3338,12 @@ dlg2.addEventListener('cancel', (e) => { e.preventDefault(); dlg2.close(); });
    기록 → 글로 복사 → 클로드에게 붙여 넣기 → 받은 답변 저장(잘한 점이 쌓여요). 해야 할 일은 만들지 않아요.
    (밖으로 나가는 요청은 없어요. 복사하고 붙여 넣는 방식이에요.)
    --------------------------------------------------------------------- */
-const COPY_SCOPES = ['all', 'violin', 'exercise', 'econ', 'english', 'drawing']; // 🤖 클로드 피드백의 범위 칩 (① 보내기 · ② 받은 답변 저장). 🌈 전체가 맨 앞이에요.
+const COPY_SCOPES = ['all', 'violin', 'econ', 'english', 'drawing']; // 🤖 클로드 피드백의 범위 칩 (① 보내기 · ② 받은 답변 저장). 🌈 전체가 맨 앞이에요.
 const AREA_SCOPES = COPY_SCOPES.filter((id) => id !== 'all'); // 영역 하나씩 (③ 받은 피드백의 범위 칩 · 🌈 전체 글의 영역 순서)
-const PERIODS = [{ id: 'day', label: '오늘' }, { id: 'week', label: '이번 주' }, { id: 'month', label: '이번 달' }];
-const scopeMeta = (id) => CLAUDE_SCOPES.find((x) => x.id === id) || CLAUDE_SCOPES.find((x) => x.id === 'violin');
+// 기간 칩: 오늘 · 지난주 · 지난달. 저장되는 period 이름은 'day' | 'week' | 'month' 그대로예요 (예전에 '이번 주'·'이번 달'로 저장된 피드백도 같은 이름이고, 저장된 날짜 범위(rangeStart·rangeEnd) 그대로 보여요)
+const PERIODS = [{ id: 'day', label: '오늘' }, { id: 'week', label: '지난주' }, { id: 'month', label: '지난달' }];
+const RETIRED_SCOPES = { exercise: { id: 'exercise', icon: '🧘', label: '운동' } }; // 범위 칩에서는 빠졌지만, 예전에 이 범위로 저장된 피드백은 지우지 않고 🧘 로 보여요 (🌈 전체에서만 보여요)
+const scopeMeta = (id) => CLAUDE_SCOPES.find((x) => x.id === id) || RETIRED_SCOPES[id] || CLAUDE_SCOPES.find((x) => x.id === 'violin');
 const byCreatedDesc = (a, b) => (b.createdAt || 0) - (a.createdAt || 0);
 
 /* ---- 내 정보·요청 문구 (범위마다. 고치면 Store에 저장되고 백업에 들어가요) ---- */
@@ -3335,13 +3358,23 @@ const claudeInfo = (scope) => claudeField(scope, 'info');
 const claudeRequest = (scope) => claudeField(scope, 'request');
 
 /* ---- 기간과 기록 모으기 ---- */
+// 오늘 = 오늘 하루(새벽 4시 전은 전날) · 지난주 = 바로 전 주 일요일~토요일 · 지난달 = 바로 전 달 1일~말일
 function claudeRange(period) {
   const t = todayStr();
-  if (period === 'week') { const m = weekStartOf(t); return [m, addDays(m, 6)]; }
-  if (period === 'month') return [`${t.slice(0, 7)}-01`, t];
+  if (period === 'week') { const s = addDays(weekStartOf(t), -7); return [s, addDays(s, 6)]; }
+  if (period === 'month') {
+    const d = parseDate(t);
+    return [toStr(new Date(d.getFullYear(), d.getMonth() - 1, 1)), toStr(new Date(d.getFullYear(), d.getMonth(), 0))];
+  }
   return [t, t];
 }
-const SCOPE_TYPE = { violin: 'violin', exercise: 'workout', econ: 'econRoutine', english: 'englishArticle', drawing: 'art' };
+// 복사 글·② 에 적는 기간: "오늘(10/4)" · "지난주(9/27~10/3)" · "지난달(9/1~9/30)"
+function periodText(period, start, end) {
+  const name = (PERIODS.find((p) => p.id === period) || {}).label || '';
+  if (!start) return name;
+  return period === 'day' ? `${name}(${slashDay(start)})` : `${name}(${slashDay(start)}~${slashDay(end || start)})`;
+}
+const SCOPE_TYPE = { violin: 'violin', econ: 'econRoutine', english: 'englishArticle', drawing: 'art' };
 const scopeRecords = (scope, start, end) => ofType(SCOPE_TYPE[scope]).filter((r) => r.date >= start && r.date <= end).sort(byOldest);
 // 그 기간에 기록이 있는 영역만 (📚 경제 루틴은 그 기간에 새로 정리한 용어도 함께). only 를 주면 그 영역 하나만 봐요.
 function claudeGroups(start, end, only = null) {
@@ -3369,10 +3402,6 @@ function claudeLine(r) {
     if (books.length) bits.push(`교재: ${books.map((l) => (l.piece ? `${l.book} · ${oneLine(l.piece)}${note(l)}` : l.book)).join(' / ')}`);
     add('교재 위치', r.bookPart); // 아직 옮기지 않은 예전 기록에만 있어요
     feel(); add('단계', r.stage);
-  } else if (r.type === 'workout') {
-    bits.push('운동');
-    if (r.distance) bits.push(`거리: ${fmtNum(r.distance)}km`);
-    feel(); add('한 줄', r.memo);
   } else if (r.type === 'econRoutine') {
     ECON_ROUTINES.filter((x) => routineChecked(r, x.id)).forEach((x) => {
       const chips = x.chips && Array.isArray(r.letters) ? r.letters.filter((c) => x.chips.includes(c)) : [];
@@ -3391,7 +3420,7 @@ function claudeLine(r) {
   return bits.join(' · ');
 }
 
-// 이번 주·이번 달 요약 한 줄 (쉰 날·빈 날은 쓰지 않아요)
+// 지난주·지난달 요약 한 줄 (쉰 날·빈 날은 쓰지 않아요)
 function claudeSummary(scope, list) {
   if (scope === 'econ') return ECON_ROUTINES.map((x) => `${x.icon} ${list.filter((r) => routineChecked(r, x.id)).length}번`).join(' · ');
   if (scope === 'english') return `기사 ${list.length}개`;
@@ -3415,7 +3444,7 @@ function lastFeedbackBlockAll() { // 영역별 최근 한 줄씩 (🌈 전체로
 }
 
 // 복사되는 글(영역 하나): 내 정보 → 요청(+공통 답변 형식) → 물어볼 것 → 지난번 피드백에서 → 기록 본문(+새로 정리한 용어) → 요약 한 줄 (블록 사이는 빈 줄 하나)
-function claudeText({ scope, period, list, terms = [], question = '' }) {
+function claudeText({ scope, period, list, terms = [], question = '', start = '', end = '' }) {
   const blocks = [];
   const info = String(claudeInfo(scope) || '').trim();
   if (info) blocks.push(info);
@@ -3424,7 +3453,7 @@ function claudeText({ scope, period, list, terms = [], question = '' }) {
   const prev = lastFeedbackBlock(scope);
   if (prev) blocks.push(prev);
   const body = [...[...list].sort(byOldest).map(claudeLine), ...(terms.length ? [termsLine(terms)] : [])];
-  if (body.length) blocks.push(body.join('\n'));
+  if (body.length) blocks.push([start ? `기간: ${periodText(period, start, end)}` : '', ...body].filter(Boolean).join('\n'));
   if ((period === 'week' || period === 'month') && list.length) blocks.push(claudeSummary(scope, list));
   blocks.push(CLAUDE_STAMP_ASK);
   return blocks.join('\n\n');
@@ -3442,7 +3471,7 @@ function claudeSection(g, period) {
   if ((period === 'week' || period === 'month') && g.list.length) lines.push(claudeSummary(g.scope, g.list));
   return lines.join('\n');
 }
-function claudeTextAll({ period, groups, question = '' }) {
+function claudeTextAll({ period, groups, question = '', start = '', end = '' }) {
   const blocks = [];
   const info = String(claudeInfo('all') || '').trim();
   if (info) blocks.push(info);
@@ -3450,6 +3479,7 @@ function claudeTextAll({ period, groups, question = '' }) {
   if (question.trim()) blocks.push(`이번에 특히 물어볼 것: ${oneLine(question)}`);
   const prev = lastFeedbackBlockAll();
   if (prev) blocks.push(prev);
+  if (start) blocks.push(`기간: ${periodText(period, start, end)}`);
   groups.forEach((g) => blocks.push(claudeSection(g, period)));
   blocks.push(CLAUDE_STAMP_ASK);
   return blocks.join('\n\n');
@@ -3487,10 +3517,18 @@ function feedbackBadge(r) {
   return n ? `<button type="button" class="btn ghost small fb-badge" data-act="fbGo" data-id="${esc(r.id)}" title="받은 피드백을 캘린더에서 보기">💬 ${n}</button>` : '';
 }
 
-const periodLabel = (f) => ({ day: '오늘', week: '이번 주', month: '이번 달', card: '카드' }[f.period] || '');
+// 받은 피드백의 기간 이름. 저장된 날짜 범위(rangeStart·rangeEnd)를 그대로 보여 주고, 이름은 그 범위가 저장한 날을 포함하면 예전 이름(이번 주·이번 달), 아니면 지난주·지난달이에요
+const periodLabel = (f) => {
+  if (f.period === 'card') return '카드';
+  if (f.period === 'day') return '오늘';
+  const past = !!(f.rangeEnd && f.date && f.rangeEnd < f.date); // 범위가 저장한 날보다 앞이면 지난 기간이에요
+  if (f.period === 'week') return past ? '지난주' : '이번 주';
+  if (f.period === 'month') return past ? '지난달' : '이번 달';
+  return '';
+};
 function fbRangeText(f) {
   if (!f.rangeStart || f.period === 'card' || f.period === 'day') return '';
-  return ` (${shortDay(f.rangeStart)} ~ ${shortDay(f.rangeEnd || f.rangeStart)})`;
+  return ` (${slashDay(f.rangeStart)}~${slashDay(f.rangeEnd || f.rangeStart)})`;
 }
 
 /* ---- 피드백 한 건 (③ 받은 피드백) ---- */
@@ -3687,10 +3725,10 @@ function claudeCurrent() {
   const groups = claudeGroups(start, end, scope === 'all' ? null : scope);
   const count = groups.reduce((n, g) => n + claudeCount(g), 0);
   let text = '';
-  if (count) text = scope === 'all' ? claudeTextAll({ period: ui.claudePeriod, groups, question }) : claudeText({ scope, period: ui.claudePeriod, list: groups[0].list, terms: groups[0].terms, question });
+  if (count) text = scope === 'all' ? claudeTextAll({ period: ui.claudePeriod, groups, question, start, end }) : claudeText({ scope, period: ui.claudePeriod, list: groups[0].list, terms: groups[0].terms, question, start, end });
   return { scope, period: ui.claudePeriod, start, end, groups, count, question, text, list: groups.flatMap((g) => g.list) };
 }
-// 🌈 전체일 때 미리보기 위의 한 줄: "🎻 🧘 📚 기록을 보내요" (기록이 없는 영역은 빼요)
+// 🌈 전체일 때 미리보기 위의 한 줄: "🎻 📚 기록을 보내요" (기록이 없는 영역은 빼요)
 const claudeCountLine = (cur) => (cur.scope === 'all' && cur.count ? `${cur.groups.map((g) => scopeMeta(g.scope).icon).join(' ')} 기록을 보내요` : '');
 
 // ② 에서 저장할 범위·기간: 카드에서 보낸 것이면 그 기록, 방금 복사한 것이 있으면 그 범위·기간, 없으면 ① 에서 고른 것 (범위만 작은 칩으로 바꿀 수 있어요)
@@ -3707,7 +3745,7 @@ function fbSaveNote(t) {
     const r = records.find((x) => x.id === t.targetId);
     return r ? `📎 이 기록에서 보낸 답변이에요: ${dayLabel(r.date)} · ${calTitle(r)}` : '';
   }
-  return `기간: ${periodLabel(t)}${fbRangeText(t)}`;
+  return `기간: ${periodText(t.period, t.rangeStart, t.rangeEnd)}`;
 }
 function fbSaveChipsHTML(t) {
   if (t.targetId) return `<span class="chip small active">${scopeMeta(t.scope).icon} ${esc(scopeMeta(t.scope).label)}</span>`; // 카드에서 보낸 것은 범위가 정해져 있어요
