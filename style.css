@@ -826,6 +826,11 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .wkt-sw.t-face { background: var(--red-soft); }
 .wkt-sw.ex { background: var(--ex-soft); border: 1.5px solid var(--ex); }
 .wkt-memo { margin: 4px 2px 0; overflow-wrap: anywhere; }
+.wkt-memo-lines { display: flex; flex-direction: column; gap: 2px; min-width: 0; } /* 메모를 "; " 로 나눠 한 줄에 하나씩 */
+.wkm-h { font-weight: 700; color: var(--ink); }
+.wkm-l { display: block; min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.wkm-day { padding-left: 1.5em; text-indent: -1.5em; } /* 요일 아래로 이어지는 줄은 내용 글자에 맞춰요 */
+.wkm-d { display: inline-block; width: 1.1em; margin-right: .4em; text-indent: 0; font-weight: 700; color: var(--ex-ink); } /* 요일(일~토)은 운동 블록과 같은 뮤트톤 파랑 */
 .wkt-prevwrap { margin-top: 8px; }
 @media (min-width: 520px) {
   .wkt { grid-template-columns: 44px repeat(7, minmax(0, 1fr)); }
