@@ -584,6 +584,10 @@ dialog.roomy { width: min(900px, 92vw); }
 .wk-stamp-say[hidden] { display: none; }
 .wk-note { margin: 8px 0 0; }
 .day-routine .rt-list { margin-top: 8px; }
+.day-podcast .rt-list { margin-top: 8px; }
+.en-podcast { margin: 0 0 18px; }
+.en-podcast .rt-note-form { flex: 1 1 240px; min-width: 0; }
+.en-podcast .rt-note-in { background: var(--card); }
 .rt-day-item { font-weight: 600; }
 .cal-mark.routine .cal-ico { margin-right: 2px; }
 
