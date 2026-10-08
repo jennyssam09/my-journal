@@ -125,6 +125,13 @@ const SCHEMAS = {
       { key: 'sum', label: '요약 3줄 - 선택', type: 'multi', keys: ['sum1', 'sum2', 'sum3'], placeholders: ['1. What happened', '2. Why it matters', "3. What's next / my takeaway"], hint: '영어로 한두 줄만 써도 저장돼요.' },
     ],
   },
+  // 🎧 영어 팟캐스트: 하루에 기록 하나. 입력 창 없이 영어 화면에서 바로 체크해요. checked(들었어요) / title(뭐 들었는지 한 줄, 선택)
+  englishPodcast: {
+    label: '영어 팟캐스트',
+    fields: [
+      { key: 'date', label: '날짜', type: 'date', required: true },
+    ],
+  },
   // 💬 클로드에게 받은 피드백: scope('all'|'violin'|'econ'|'english'|'drawing' · 예전에 저장된 'exercise' 도 있어요) / period('day'|'week'|'month'|'card') / rangeStart·rangeEnd / targetId(카드에서 보낸 기록) / question / text(붙여 넣은 답변) / strengths(잘한 점 줄 목록)
   //   (예전에 저장한 todo·todoDone·todoHidden 은 화면에서만 빠졌고 값은 그대로 남아 있어요. RETIRED 참고)
   claudeFeedback: {
@@ -270,7 +277,7 @@ const SEASON_DECOR = ['⛄', '🧣', '🌱', '🌸', '🌿', '☔', '🍉', '�
 //   🌈 전체는 기록이 있는 영역만 "── 🎻 바이올린 ──" 처럼 나누어 한 글로 모아요.
 const CLAUDE_SCOPES = [
   { id: 'all', icon: '🌈', label: '전체',
-    info: '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
+    info: '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 운동(가볍게), 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
     request: "맨 위에 '이번 기간 한 줄 총평'을 쓰고, 기록이 있는 영역만 영역별로 잘한 점과 달라진 점을 짧게 써 줘. 경제 영역은 한 줄 메모에 나온 개념을 쉽게 풀어 줘." },
   { id: 'violin', icon: '🎻', label: '바이올린',
     info: '바이올린 취미 4년차(메인 취미). 비브라토를 배우는 중이고, 쉬었다 하다를 반복해서 기본기가 얕은 편이에요. 교재와 곡은 기록에 나와요. 평일엔 밤늦게 짧게 연습해요.',
@@ -293,7 +300,8 @@ const CLAUDE_STAMP_ASK = "마지막에 '도장 문구:' 아래에 다음 기록 
 const CLAUDE_OLD_DEFAULTS = {
   all: {
     info: ['여러 취미를 기록하고 있어요. 바이올린(메인 취미), 요가·슬로조깅, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
-      '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 운동, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.'],
+      '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 운동, 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의 때문에 쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.',
+      '여러 취미를 기록하고 있어요. 바이올린(메인 취미), 경제 공부 루틴, 영어 기사 요약, 그림(사이드). 완벽주의쉬었다 하다를 반복해 온 편이라, 조금씩이라도 꾸준히 쌓는 게 목표예요. 평일은 밤 11시쯤 일이 끝나요.'],
   },
   violin: {
     info: ['바이올린 취미 4년차(메인 취미). 스즈키 4권 수준. 지금 비브라토 배우는 중. 쉬었다 하다를 반복해서 기본기가 얕고 연습량도 많지 않음. 평일은 밤늦게 짧게 연습하는 편.'],
@@ -544,6 +552,8 @@ const ui = {
   termAdding: false,  // 용어 노트: "＋ 용어 추가" 칸이 열려 있는지
   termEdit: null,     // 용어 노트: 그 자리에서 고치는 중인 용어 id
   termQuery: '',      // 용어 노트: 찾는 말
+  podDraft: null,     // 영어 팟캐스트 "뭐 들었어요?"에 쓰는 중이지만 아직 저장하지 않은 글 { date, text }
+  podSavedUntil: 0,
   noteDraft: null,    // 경제 루틴 "오늘 한 줄"에 쓰는 중이지만 아직 저장하지 않은 글 { date, text }
   noteSavedUntil: 0,  // 한 줄을 저장한 직후 "저장됨 ✓"를 보여 주는 시각
   claudePeriod: 'week', // 🤖 클로드 피드백 ① 보내기: 기간 day(오늘) | week(지난주) | month(지난달). 처음 열 때는 지난주 (직접 고르면 그 선택을 따라요)
@@ -743,7 +753,7 @@ function monthsAgo(dateStr, n) {
 // 그때의 나: 한 달 전 → 석 달 전 → 1년 전 중 기록이 있는 첫 날에서 하나 (그림이 있으면 그림 먼저)
 const hasArtPic = (r) => r.type === 'art' && artPhotos(r).length > 0;
 function memoryPick(today) {
-  const pool = records.filter((r) => r.type !== 'rest' && r.date && catOf(r) && (r.type !== 'econRoutine' || hasValue(r.note))); // 경제 루틴은 한 줄을 남긴 날만
+  const pool = records.filter((r) => r.type !== 'rest' && r.date && catOf(r) && (r.type !== 'econRoutine' || hasValue(r.note)) && (r.type !== 'englishPodcast' || hasValue(r.title))); // 경제 루틴·팟캐스트는 한 줄을 남긴 날만
   for (const look of MEMORY_LOOKBACKS) {
     const date = monthsAgo(today, look.months);
     const list = pool.filter((r) => r.date === date).sort((a, b) => (hasArtPic(b) ? 1 : 0) - (hasArtPic(a) ? 1 : 0) || (b.createdAt || 0) - (a.createdAt || 0));
@@ -753,7 +763,7 @@ function memoryPick(today) {
 }
 
 function memoryText(r) {
-  const raw = { workout: r.memo, violin: r.kind === '레슨' ? r.feedback : (r.good || r.hard), econRoutine: r.note, englishArticle: r.sum1, art: r.topic }[r.type] || '';
+  const raw = { workout: r.memo, violin: r.kind === '레슨' ? r.feedback : (r.good || r.hard), econRoutine: r.note, englishArticle: r.sum1, englishPodcast: r.title, art: r.topic }[r.type] || '';
   const t = String(raw).replace(/\s+/g, ' ').trim();
   return t.length > 120 ? `${t.slice(0, 120)}…` : t;
 }
@@ -1485,9 +1495,9 @@ function goToRecord(id) {
   closeDlg();
   if (r.type === 'econRoutine') { ui.tab = 'econ'; ui.econView = 'routine'; }
   else if (r.type === 'art') { ui.tab = 'art'; }
-  else if (r.type === 'englishArticle') { ui.tab = 'english'; }
+  else if (r.type === 'englishArticle' || r.type === 'englishPodcast') { ui.tab = 'english'; }
   else if (r.type === 'violin') { ui.tab = 'violin'; ui.vnView = 'records'; }
-  const inDay = r.type !== 'econRoutine' && r.type !== 'art' && r.type !== 'englishArticle' && r.type !== 'violin'; // 운동 · 쉼은 따로 목록이 없어서 그날의 기록 창으로 가요
+  const inDay = r.type !== 'econRoutine' && r.type !== 'art' && r.type !== 'englishArticle' && r.type !== 'englishPodcast' && r.type !== 'violin'; // 운동 · 쉼은 따로 목록이 없어서 그날의 기록 창으로 가요
   ui.query = '';
   render();
   if (inDay) openDay(r.date);
@@ -1639,6 +1649,87 @@ function englishWeekLabel() {
   return `이번 주 ${has ? '✓ ' : ''}(${f(sun)} ~ ${f(sat)})`;
 }
 
+/* 🎧 영어 팟캐스트: 경제 루틴 체크와 같은 방식이에요. 입력 창 없이 영어 화면에서 바로 체크하고, 날짜마다 기록 하나(type 'englishPodcast': date · checked · title)가 생겨요.
+   체크를 풀면 그 기록은 지워져요. "뭐 들었어요?" 한 줄은 [저장] 버튼이나 Enter 로 저장하고(비워도 돼요), 한 줄을 적으면 들은 날로 쳐요. 지난 날 체크는 📅 날짜 창에서 해요. */
+const podcastOn = (date) => records.find((r) => r.type === 'englishPodcast' && r.date === date);
+let podcastQueue = Promise.resolve();
+function updatePodcast(date, patch) {
+  const run = async () => {
+    const old = podcastOn(date);
+    const { sample, ...keep } = old || {};
+    const rec = { ...keep, id: old ? old.id : newId(), type: 'englishPodcast', date, createdAt: old ? old.createdAt : Date.now(), checked: !!keep.checked, title: keep.title || '' };
+    patch(rec);
+    rec.title = String(rec.title || '').trim();
+    if (rec.title) rec.checked = true; // 들은 것을 적었으면 들은 날이에요
+    rec.updatedAt = Date.now();
+    if (!rec.checked) { if (old) await deleteRecord(old.id); return null; } // 체크를 풀면 기록이 사라져요
+    if (!old) assignStamp(rec);
+    return (await saveRecord(rec)) ? rec : undefined; // null: 지움, undefined: 저장 못 함
+  };
+  podcastQueue = podcastQueue.then(run, run);
+  return podcastQueue;
+}
+const refreshPodcastViews = () => { render(); refreshDay(); };
+async function setPodcastCheck(date, on) {
+  if (date > todayStr()) return; // 미래 날짜는 체크할 수 없어요
+  const was = !!(podcastOn(date) && podcastOn(date).checked);
+  const rec = await updatePodcast(date, (r) => { if (on) r.checked = true; else { r.checked = false; r.title = ''; } });
+  if (rec === undefined) return;
+  refreshPodcastViews();
+  if (on && !was && rec) afterNewRecord(rec);
+}
+const podSavedText = (date) => { const r = podcastOn(date); return r && r.title ? r.title : ''; };
+const podDraftText = (date) => (ui.podDraft && ui.podDraft.date === date ? ui.podDraft.text : podSavedText(date));
+const podDirty = (date) => !!ui.podDraft && ui.podDraft.date === date && ui.podDraft.text.trim() !== podSavedText(date);
+function podBtnHTML(date) {
+  if (podDirty(date)) return '<button type="submit" class="btn small rt-save" id="podSave">저장</button>';
+  if (ui.podSavedUntil > Date.now()) return '<span class="rt-saved" id="podSave" role="status">저장됨 ✓</span>';
+  return '<button type="submit" class="btn small rt-save" id="podSave" disabled>저장</button>';
+}
+function syncPodBtn(date) { const el = $('#podSave'); if (el) el.outerHTML = podBtnHTML(date); }
+async function savePodcastTitle(date) {
+  const input = $('#podTitle');
+  const text = (input && input.dataset.date === date ? input.value : podDraftText(date)).trim();
+  if (text === podSavedText(date)) { ui.podDraft = null; syncPodBtn(date); return true; }
+  const old = podcastOn(date);
+  const rec = await updatePodcast(date, (r) => { r.title = text; });
+  if (rec === undefined) return false;
+  ui.podDraft = null;
+  ui.podSavedUntil = Date.now() + 2200;
+  setTimeout(() => { if (ui.podSavedUntil <= Date.now()) syncPodBtn(date); }, 2300);
+  refreshPodcastViews();
+  if (!old && rec) afterNewRecord(rec); // 한 줄을 적어서 처음 들은 날이 된 경우
+  return true;
+}
+async function confirmLeavePodcast() {
+  const date = todayStr();
+  if (ui.tab !== 'english' || !podDirty(date)) return true;
+  if (!confirm('저장하지 않은 한 줄이 있어요. 저장할까요?')) return false;
+  return savePodcastTitle(date);
+}
+function podcastHTML(date) {
+  const rec = podcastOn(date);
+  const on = !!(rec && rec.checked);
+  return `<section class="en-podcast"${rec ? ` data-rid="${esc(rec.id)}"` : ''}><div class="rt-list"><div class="rt-row${on ? ' on' : ''}">
+      <label class="rt-main"><input type="checkbox" class="rt-check" data-podcast data-date="${date}" ${on ? 'checked' : ''}><span class="rt-icon" aria-hidden="true">🎧</span><span class="rt-label">영어 팟캐스트 들었어요</span></label>
+      <form id="podForm" class="rt-note-form" data-date="${date}" novalidate>
+        <input id="podTitle" class="rt-note-in" type="text" maxlength="300" autocomplete="off" data-podcast-title data-date="${date}" value="${esc(podDraftText(date))}" placeholder="뭐 들었어요? (선택)" aria-label="뭐 들었어요? (선택)">
+        ${podBtnHTML(date)}
+      </form>
+    </div></div></section>`;
+}
+
+// 날짜 창 안의 팟캐스트 체크 (오늘·지난 날 모두 켜고 끌 수 있어요. 미래 날짜에는 없어요)
+function podcastDaySecHTML(date) {
+  const rec = podcastOn(date);
+  const on = !!(rec && rec.checked);
+  return `<section class="card day-podcast"${rec ? ` data-rid="${esc(rec.id)}"` : ''}>
+      <div><span class="tag">🎧 영어 팟캐스트</span></div>
+      <div class="rt-list"><div class="rt-row${on ? ' on' : ''}"><label class="rt-main"><input type="checkbox" class="rt-check" data-podcast data-date="${date}" ${on ? 'checked' : ''}><span class="rt-icon" aria-hidden="true">🎧</span><span class="rt-label">영어 팟캐스트 들었어요</span></label></div></div>
+      ${rec && hasValue(rec.title) ? textBlock('들은 것', rec.title) : ''}
+    </section>`;
+}
+
 function englishBodyHTML() {
   const arts = ofType('englishArticle').sort(byNewest);
   return `<p class="meta area-line" id="enWeek">${esc(englishWeekLabel())}</p>${arts.length ? arts.map(englishCard).join('') : `<div class="empty">${esc(EMPTY_TEXT.english)}</div>`}`;
@@ -1647,7 +1738,8 @@ function englishBodyHTML() {
 function renderEnglish() {
   view.innerHTML = `
     <h2 class="page-title">영어</h2>
-    <p class="page-sub">일주일에 기사 하나, 세 줄로 정리해요.</p>
+    <p class="page-sub">일주일에 기사 하나, 세 줄로 정리해요. 영어 팟캐스트를 들은 날은 맨 위에서 체크해요.</p>
+    ${podcastHTML(todayStr())}
     <div class="row actions-row add-row">
       <button type="button" class="btn" data-act="add" data-type="englishArticle">＋ 이번 주 기사 추가</button>
     </div>
@@ -1741,6 +1833,22 @@ function tutorTotals(sun) {
   const blocks = tutorBlocksOf(sun);
   const min = blocks.reduce((n, b) => { const s = timeMin(b.s); const e = timeMin(b.e); return s !== null && e !== null && e > s ? n + e - s : n; }, 0);
   return { count: blocks.length, min };
+}
+// 한 달의 과외 합계: 그 달에 속한 날짜(1일~말일)의 과외 블록만 (주가 달에 걸치면 날짜로 잘라서 그 달 것만). 한 주의 계산(tutorBlocksOf)을 날짜마다 그대로 써요
+function tutorTotalsMonth(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  let count = 0; let min = 0;
+  for (let d = 1; d <= last; d += 1) {
+    const date = `${ym}-${pad(d)}`;
+    const dow = parseDate(date).getDay();
+    tutorBlocksOf(weekStartOf(date)).filter((b) => b.d === dow).forEach((b) => {
+      count += 1;
+      const s = timeMin(b.s); const e = timeMin(b.e);
+      if (s !== null && e !== null && e > s) min += e - s;
+    });
+  }
+  return { count, min };
 }
 function tutorTotalText({ count, min }) {
   if (!count) return '과외 없음';
@@ -2191,6 +2299,7 @@ const CAL_CATS = [
   { id: 'lesson', chip: 'violin', icon: '🎓', label: '레슨', test: (r) => r.type === 'violin' && r.kind === '레슨' },
   { id: 'routine', chip: 'routine', icon: '✅', label: '경제 루틴', iconOnly: true, test: (r) => r.type === 'econRoutine' },
   { id: 'english', chip: 'english', icon: '📰', label: '영어', iconOnly: true, test: (r) => r.type === 'englishArticle' },
+  { id: 'podcast', chip: 'english', icon: '🎧', label: '영어 팟캐스트', iconOnly: true, stampArea: 'english', test: (r) => r.type === 'englishPodcast' }, // 📰 영어 칩에 함께 묶여요. 도장 문구는 영어 것을 써요
   { id: 'art', chip: 'art', icon: '🎨', label: '그림', test: (r) => r.type === 'art' },
   { id: 'rest', chip: 'rest', icon: '😴', label: '쉼', test: (r) => r.type === 'rest' },
 ];
@@ -2204,6 +2313,7 @@ const CAL_CHIPS = [
   { id: 'rest', icon: '😴', label: '쉼' },
 ];
 const catOf = (r) => CAL_CATS.find((c) => c.test(r));
+const stampAreaOf = (c) => (c ? c.stampArea || c.id : ''); // 도장 문구·피드백 범위를 고를 때의 영역 이름 (팟캐스트는 영어)
 // 기록 하나의 그림
 const iconOf = (r) => (catOf(r) || {}).icon || '📝';
 
@@ -2213,6 +2323,7 @@ function calTitle(r) {
     case 'violin': return r.kind === '레슨' ? '레슨' : (pieceNamesOf(r)[0] || '연습');
     case 'econRoutine': return '경제 루틴';
     case 'englishArticle': return domainOf(r.link) || '영어 기사';
+    case 'englishPodcast': return '영어 팟캐스트';
     case 'rest': return '쉼';
     default: return r.topic || artKindOf(r);
   }
@@ -2244,6 +2355,7 @@ function renderCalendar() {
     const c = catOf(r);
     if (!c) return;
     if (c.id === 'routine' && !routineIcons(r).length) return; // 체크한 항목이 없는 날(한 줄만 남긴 날)은 달력에 표시하지 않아요
+    if (c.id === 'podcast' && !r.checked) return;
     if (ui.calHidden.has(c.chip)) return;
     if (!byDate.has(r.date)) byDate.set(r.date, new Map());
     const g = byDate.get(r.date);
@@ -2422,6 +2534,8 @@ function recapFirsts(all, ym) {
   // 📰
   const arts = by((r) => r.type === 'englishArticle');
   if (arts[0]) push(arts[0].date, '📰', '첫 기사 — 영어 기사를 처음 남겼어요');
+  const pods = by((r) => r.type === 'englishPodcast' && r.checked);
+  if (pods[0]) push(pods[0].date, '🎧', '영어 팟캐스트 — 처음 들었어요');
   // 🎨
   const pics = by((r) => r.type === 'art');
   if (pics[0]) push(pics[0].date, '🎨', '첫 그림 — 처음 올렸어요');
@@ -2452,6 +2566,14 @@ const RECAP_SECTIONS = [
   { id: 'english', build: (c) => { // 읽은 기사: 도메인 · 요약 첫 줄
     const rows = c.real.filter((r) => r.type === 'englishArticle').sort(byOldest).map((r) => ({ r, dom: domainOf(r.link), line: [r.sum1, r.sum2, r.sum3].map((t) => String(t || '').trim()).find(Boolean) || '' })).filter((x) => x.dom || x.line);
     return rows.length ? { title: '읽은 기사', html: `<ul class="note-list">${rows.map((x) => `<li><span class="meta">${esc(shortDay(x.r.date))}</span><span class="pre">${x.dom ? `<b>${esc(x.dom)}</b>` : ''}${x.dom && x.line ? ' — ' : ''}${esc(x.line)}</span></li>`).join('')}</ul>` } : null;
+  } },
+  { id: 'podcast', build: (c) => { // 들은 영어 팟캐스트: 날짜 · 제목 (제목이 없으면 날짜만, 횟수는 세지 않아요)
+    const rows = c.real.filter((r) => r.type === 'englishPodcast' && r.checked).sort(byOldest);
+    return rows.length ? { title: '들은 영어 팟캐스트', html: `<ul class="note-list">${rows.map((r) => `<li><span class="meta">${esc(shortDay(r.date))}</span><span class="pre">🎧${hasValue(r.title) ? ` ${esc(r.title)}` : ''}</span></li>`).join('')}</ul>` } : null;
+  } },
+  { id: 'tutor', build: (c) => { // 이 달의 과외 회수·시간 (🗓 이번 주 위의 시수 줄과 같은 계산. 달에 속한 날짜의 과외만, 과외가 없는 달은 줄 자체를 숨겨요)
+    const t = tutorTotalsMonth(c.ym);
+    return t.count ? { title: '과외', html: `<p class="recap-big">${esc(tutorTotalText(t))}</p>` } : null;
   } },
   { id: 'art', build: (c) => { // 그림 썸네일 (기록마다 첫 장, 최근 6개까지)
     const thumbs = c.real.filter((r) => r.type === 'art' && artPhotos(r).length).sort(byOldest).slice(-6);
@@ -2497,7 +2619,7 @@ function routineDayCard(r) {
 function openDay(date) {
   ui.dayOpen = date;
   const list = records.filter((r) => r.date === date && catOf(r)).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const card = { workout: workoutCard, violin: violinCard, econRoutine: routineDayCard, englishArticle: englishCard, art: artDayCard, rest: restCard };
+  const card = { workout: workoutCard, violin: violinCard, econRoutine: routineDayCard, englishArticle: englishCard, englishPodcast: () => '', art: artDayCard, rest: restCard }; // 팟캐스트는 아래 체크 칸에서 보여요
   const open = date <= todayStr();
   const rt = routineOn(date);
   const cards = list.filter((r) => r.type !== 'econRoutine' || !open).map((r) => card[r.type](r));
@@ -2506,12 +2628,13 @@ function openDay(date) {
       ${routineRowsHTML(date)}
       ${rt && hasValue(rt.note) ? textBlock('오늘 한 줄', rt.note) : ''}
     </section>` : '';
+  const podcastSec = open ? podcastDaySecHTML(date) : '';
   const add = [['workout', '운동'], ['violin', '바이올린'], ['englishArticle', '영어 기사']]
     .map(([t, l]) => `<button type="button" class="btn ghost small" data-act="addOn" data-type="${t}" data-date="${date}">＋ ${l}</button>`).join('')
     + restButtonHTML(date);
   openDlg(`
     <h2>${esc(dayLabel(date))}</h2>
-    <div class="day-list">${cards.join('')}${!list.length ? '<div class="empty">기록이 없어요.</div>' : ''}${routineSec}</div>
+    <div class="day-list">${cards.join('')}${!list.length ? '<div class="empty">기록이 없어요.</div>' : ''}${routineSec}${podcastSec}</div>
     <div class="label" style="margin:14px 0 6px">이 날짜에 기록 더하기</div>
     <div class="row actions-row">${add}</div>
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`, true);
@@ -2624,13 +2747,13 @@ const STAMP_AREA_SCOPE = { practice: 'violin', lesson: 'violin', workout: 'all',
 function contextPraise(rec) {
   const out = [];
   const c = catOf(rec);
-  const area = c ? c.id : 'general';
+  const area = c ? stampAreaOf(c) : 'general';
   const others = records.filter((r) => r.id !== rec.id && r.date && catOf(r));
   const today = todayStr();
   const h = new Date().getHours();
   // 며칠 만에 다시 (오늘 남기는 기록일 때만)
   if (rec.date === today && area !== 'rest') {
-    const before = others.filter((r) => r.date < rec.date && catOf(r).id !== 'rest').map((r) => r.date).sort().pop();
+    const before = others.filter((r) => r.date < rec.date && stampAreaOf(catOf(r)) !== 'rest').map((r) => r.date).sort().pop();
     if (before && daysBetween(before, rec.date) >= 3) out.push('다시 켰어요. 다시 시작하는 게 제일 어려운 거예요', '돌아왔어요. 돌아온 것만으로 충분해요', '다시 펼친 게 반가워요');
   }
   // 영역별
@@ -2652,7 +2775,8 @@ function contextPraise(rec) {
     if (Number(rec.amount) === 1) out.push('살짝 움직여도 운동이에요', '가볍게도 충분해요');
   } else if (area === 'english') {
     const dom = domainOf(rec.link);
-    if (dom) out.push(`${dom} 기사를 읽었어요`, `${dom}에서 한 편 건져 왔어요`);
+    if (rec.type === 'englishPodcast') out.push('귀로 영어를 들었어요', '영어가 귀에 머물렀어요');
+    else if (dom) out.push(`${dom} 기사를 읽었어요`, `${dom}에서 한 편 건져 왔어요`);
   } else if (area === 'routine') {
     const icons = routineIcons(rec);
     if (icons.length > 1) out.push('듣고 읽고, 경제 공부를 잘 챙겼어요');
@@ -2670,7 +2794,7 @@ function contextPraise(rec) {
   if (area !== 'rest') {
     const labels = [];
     const add = (id) => { const l = STAMP_AREA_LABEL[id]; if (l && !labels.includes(l)) labels.push(l); };
-    ['practice', 'lesson', 'workout', 'routine', 'english', 'art'].forEach((id) => { if (id === area || others.some((r) => r.date === rec.date && catOf(r).id === id)) add(id); });
+    ['practice', 'lesson', 'workout', 'routine', 'english', 'art'].forEach((id) => { if (id === area || others.some((r) => r.date === rec.date && stampAreaOf(catOf(r)) === id)) add(id); });
     if (labels.length >= 2) out.push(`${rec.date === today ? '오늘' : '그날'}은 ${labels.slice(0, 3).map((l) => `${l}도`).join(' ')} 챙겼어요`);
   }
   // 밤 · 이른 아침 (지금 시각)
@@ -2683,7 +2807,7 @@ const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 8640000
 // 저장해 둔 클로드 피드백의 "잘한 점" 한 줄 (같은 영역 · 🌈 전체 것만)
 function feedbackPraise(rec) {
   const c = catOf(rec);
-  const scope = c ? STAMP_AREA_SCOPE[c.id] : '';
+  const scope = c ? STAMP_AREA_SCOPE[stampAreaOf(c)] : '';
   if (!scope) return [];
   return ofType('claudeFeedback').filter((f) => !f.sample && (f.scope === scope || f.scope === 'all')).sort(byCreatedDesc).slice(0, 3)
     .flatMap((f) => strengthsOf(f).map((x) => oneLine(x))).filter((x) => x.length <= 40 && praiseOk(x));
@@ -2703,14 +2827,15 @@ function pickStamp(rec) {
   const h = new Date().getHours();
   const night = h >= NIGHT_START || h < NIGHT_END;
   const c = catOf(rec);
-  const area = night ? 'night' : (c && STAMPS[c.id] ? c.id : 'general');
+  const sa = stampAreaOf(c);
+  const area = night ? 'night' : (c && STAMPS[sa] ? sa : 'general');
   const recent = recentPraise();
   const notRecent = (list) => list.filter((t) => !recent.includes(t));
   const sources = [];
   const ctx = notRecent(contextPraise(rec));
   if (ctx.length) sources.push({ w: 5, get: () => randOf(ctx) });
   const sl = stampLinesNow();
-  const myScope = c ? STAMP_AREA_SCOPE[c.id] : '';
+  const myScope = c ? STAMP_AREA_SCOPE[stampAreaOf(c)] : '';
   const lines = notRecent(sl.lines);
   if (lines.length) {
     const sameArea = !sl.scope || sl.scope === 'all' || sl.scope === myScope;
@@ -2736,6 +2861,7 @@ function savedLine(rec) {
     case 'workout': return join('운동', rec.distance ? `${fmtNum(rec.distance)}km` : '', amount);
     case 'econRoutine': return routineIcons(rec).join(' '); // 체크한 항목 (🎧 📮)
     case 'englishArticle': return domainOf(rec.link);
+    case 'englishPodcast': return join('🎧', rec.title ? oneLine(rec.title) : '');
     case 'art': return join(artKindOf(rec), amount);
     default: return '';
   }
@@ -3374,11 +3500,11 @@ function periodText(period, start, end) {
   if (!start) return name;
   return period === 'day' ? `${name}(${slashDay(start)})` : `${name}(${slashDay(start)}~${slashDay(end || start)})`;
 }
-const SCOPE_TYPE = { violin: 'violin', econ: 'econRoutine', english: 'englishArticle', drawing: 'art' };
-const scopeRecords = (scope, start, end) => ofType(SCOPE_TYPE[scope]).filter((r) => r.date >= start && r.date <= end).sort(byOldest);
+const SCOPE_TYPES = { violin: ['violin'], econ: ['econRoutine'], english: ['englishArticle', 'englishPodcast'], drawing: ['art'], exercise: ['workout'] }; // exercise 는 범위 칩이 아니라 🌈 전체 글의 "── 🧘 운동 ──" 구역에만 써요
+const scopeRecords = (scope, start, end) => SCOPE_TYPES[scope].flatMap((t) => ofType(t)).filter((r) => r.date >= start && r.date <= end && (r.type !== 'englishPodcast' || r.checked)).sort(byOldest);
 // 그 기간에 기록이 있는 영역만 (📚 경제 루틴은 그 기간에 새로 정리한 용어도 함께). only 를 주면 그 영역 하나만 봐요.
 function claudeGroups(start, end, only = null) {
-  return (only ? [only] : AREA_SCOPES)
+  return (only ? [only] : [...AREA_SCOPES, 'exercise']) // 🌈 전체에는 운동 구역도 (맨 끝)
     .map((sc) => ({ scope: sc, list: scopeRecords(sc, start, end), terms: sc === 'econ' ? termsBetween(start, end) : [] }))
     .filter((g) => g.list.length || g.terms.length);
 }
@@ -3388,7 +3514,16 @@ function claudeLine(r) {
   const bits = [mdLabel(r.date)];
   const add = (label, v) => { if (hasValue(v)) bits.push(label ? `${label}: ${oneLine(v)}` : oneLine(v)); };
   const feel = () => { if (amountOf(r)) bits.push(`${amountWord(r)}: ${amountOf(r).label}`); };
-  if (r.type === 'violin' && r.kind === '레슨') {
+  if (r.type === 'workout') { // "10/6(월) 운동 · 3.2km · 살짝 · 퇴근 후 짧게" (거리·운동량·한 줄은 있을 때만)
+    const d = parseDate(r.date);
+    const rest = ['운동'];
+    if (Number(r.distance) > 0) rest.push(`${fmtNum(r.distance)}km`);
+    if (amountOf(r)) rest.push(amountOf(r).label);
+    if (hasValue(r.memo)) rest.push(oneLine(r.memo));
+    return `${d.getMonth() + 1}/${d.getDate()}(${'일월화수목금토'[d.getDay()]}) ${rest.join(' · ')}`;
+  } else if (r.type === 'englishPodcast') { // "🎧 10/6 제목" (제목이 없으면 날짜만)
+    return `🎧 ${slashDay(r.date)}${hasValue(r.title) ? ` ${oneLine(r.title)}` : ''}`;
+  } else if (r.type === 'violin' && r.kind === '레슨') {
     bits.push('레슨');
     add('선생님 피드백', r.feedback); add('좋다고 한 것', r.praise); add('새로 배운 것', r.newLearn);
     feel();
@@ -3423,7 +3558,7 @@ function claudeLine(r) {
 // 지난주·지난달 요약 한 줄 (쉰 날·빈 날은 쓰지 않아요)
 function claudeSummary(scope, list) {
   if (scope === 'econ') return ECON_ROUTINES.map((x) => `${x.icon} ${list.filter((r) => routineChecked(r, x.id)).length}번`).join(' · ');
-  if (scope === 'english') return `기사 ${list.length}개`;
+  if (scope === 'english') { const n = list.filter((r) => r.type === 'englishArticle').length; return n ? `기사 ${n}개` : ''; }
   const days = new Set(list.map((r) => r.date)).size;
   return [`기록한 날 ${days}일`, ...AMOUNTS.map((a) => `${a.label} ${list.filter((r) => amountOf(r) && supportsAmount(r.type, r.kind) && amountOf(r).v === a.v).length}`)].join(' · ');
 }
@@ -3454,7 +3589,8 @@ function claudeText({ scope, period, list, terms = [], question = '', start = ''
   if (prev) blocks.push(prev);
   const body = [...[...list].sort(byOldest).map(claudeLine), ...(terms.length ? [termsLine(terms)] : [])];
   if (body.length) blocks.push([start ? `기간: ${periodText(period, start, end)}` : '', ...body].filter(Boolean).join('\n'));
-  if ((period === 'week' || period === 'month') && list.length) blocks.push(claudeSummary(scope, list));
+  const sum = (period === 'week' || period === 'month') && list.length ? claudeSummary(scope, list) : '';
+  if (sum) blocks.push(sum);
   blocks.push(CLAUDE_STAMP_ASK);
   return blocks.join('\n\n');
 }
@@ -3468,7 +3604,7 @@ function claudeSection(g, period) {
   if (req) lines.push(req);
   [...g.list].sort(byOldest).forEach((r) => lines.push(claudeLine(r)));
   if (g.terms.length) lines.push(termsLine(g.terms));
-  if ((period === 'week' || period === 'month') && g.list.length) lines.push(claudeSummary(g.scope, g.list));
+  if ((period === 'week' || period === 'month') && g.list.length && g.scope !== 'exercise') { const sum = claudeSummary(g.scope, g.list); if (sum) lines.push(sum); } // 운동 구역은 날짜 줄만 (합계·비교 없음)
   return lines.join('\n');
 }
 function claudeTextAll({ period, groups, question = '', start = '', end = '' }) {
@@ -4914,6 +5050,7 @@ document.addEventListener('click', async (e) => {
   switch (act) {
     case 'tab':
       if (ui.tab !== id && !(await confirmLeaveNote())) break; // 저장하지 않은 한 줄이 있으면 물어봐요
+      if (ui.tab !== id && !(await confirmLeavePodcast())) break;
       if (ui.tab !== id) { ui.vnView = 'records'; ui.econView = 'routine'; ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; ui.weekStart = null; } // 다른 메뉴에서 들어오면 늘 첫 칩(기록)부터 (🗓 이번 주는 이번 주부터)
       ui.tab = id; ui.query = '';
       render(); window.scrollTo(0, 0); break;
@@ -5128,6 +5265,7 @@ document.addEventListener('submit', (e) => {
   else if (f.id === 'clForm') { e.preventDefault(); once(f, () => saveClaudeSettings()); }
   else if (f.id === 'fbEditForm') { e.preventDefault(); once(f, () => saveFeedbackEdit(f)); }
   else if (f.id === 'bookAddForm') { e.preventDefault(); once(f, () => addBook(f.elements[0].value)); }
+  else if (f.id === 'podForm') { e.preventDefault(); once(f, () => savePodcastTitle(f.dataset.date)); }
   else if (f.id === 'rtNoteForm') { e.preventDefault(); once(f, () => saveRoutineNote(f.dataset.date)); }
   else if (f.id === 'termForm') { e.preventDefault(); once(f, () => saveTerm(f)); }
   else if (f.id === 'pieceMemoForm') { e.preventDefault(); once(f, () => savePieceMemo(f.dataset.piece, f.elements.memo.value.trim())); }
@@ -5136,6 +5274,7 @@ document.addEventListener('submit', (e) => {
 document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.dataset.routine && t.type === 'checkbox') { await setRoutineCheck(t.dataset.date, t.dataset.routine, t.checked); }
+  if ('podcast' in t.dataset && t.type === 'checkbox') { await setPodcastCheck(t.dataset.date, t.checked); }
   else if (t.id === 'f_kind' && t.form && t.form.id === 'recForm') { syncKindFields(t.form); }
   else if (t.id === 'f_date') { // 날짜를 바꾸면 "새벽 4시 전이라 어제 기록" 안내는 사라져요
     const n = t.parentElement.querySelector('.dawn-note');
@@ -5180,6 +5319,7 @@ document.addEventListener('paste', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.matches && e.target.matches('#fbInput [data-fb=text]') && !e.target.value.trim()) { renderStrengths(e.target.closest('#fbInput'), []); return; } // 답변을 다 지우면 체크 목록도 사라져요
   if (e.target.id === 'claudeQ') { ui.claudeQuestion[ui.claudeScope] = e.target.value; syncClaudeBox(); return; } // 복사할 글 미리보기
+  if (e.target.dataset && 'podcastTitle' in e.target.dataset) { ui.podDraft = { date: e.target.dataset.date, text: e.target.value }; ui.podSavedUntil = 0; syncPodBtn(e.target.dataset.date); return; } // 팟캐스트 한 줄: 고치면 다시 [저장]
   if (e.target.dataset && 'routineNote' in e.target.dataset) { ui.noteDraft = { date: e.target.dataset.date, text: e.target.value }; ui.noteSavedUntil = 0; syncNoteBtn(e.target.dataset.date); return; } // 오늘 한 줄: 고치면 다시 [저장]
   if (e.target.dataset && e.target.dataset.stage) { // 올리려는 녹음의 날짜·메모
     const s = staged.find((x) => x.sid === e.target.dataset.sid);
