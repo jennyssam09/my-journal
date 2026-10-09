@@ -552,6 +552,7 @@ const ui = {
   termAdding: false,  // 용어 노트: "＋ 용어 추가" 칸이 열려 있는지
   termEdit: null,     // 용어 노트: 그 자리에서 고치는 중인 용어 id
   termQuery: '',      // 용어 노트: 찾는 말
+  tabDate: null,      // 🎻 📚 📰 🎨 탭의 날짜 줄이 가리키는 날짜 (null 이면 오늘). 저장하지 않아요 · 다른 탭으로 가면 오늘로 돌아가요
   podDraft: null,     // 영어 팟캐스트 "뭐 들었어요?"에 쓰는 중이지만 아직 저장하지 않은 글 { date, text }
   podSavedUntil: 0,
   noteDraft: null,    // 경제 루틴 "오늘 한 줄"에 쓰는 중이지만 아직 저장하지 않은 글 { date, text }
@@ -679,8 +680,17 @@ function renderTabs() {
     + (folded.length ? `<button type="button" class="tab fold-toggle" data-act="menuFold" aria-expanded="${m.open}" aria-label="${m.open ? '접어 둔 메뉴 접기' : '접어 둔 메뉴 펼치기'}" title="${m.open ? '접어 둔 메뉴 접기' : '접어 둔 메뉴 펼치기'}">${m.open ? '›' : '‹'}</button>` : '');
 }
 
+let renderedTab = null;
+// 날짜 줄이 가리키는 날짜의 기록은 목록에서 카드 왼쪽 테두리로만 살짝 표시해요
+function markTabDate() {
+  if (!DATE_TABS.includes(ui.tab)) return;
+  const day = tabDay();
+  const byId = new Map(records.map((r) => [r.id, r]));
+  view.querySelectorAll('.card[data-rid], .art-tile[data-rid]').forEach((el) => { const r = byId.get(el.dataset.rid); el.classList.toggle('on-date', !!r && r.date === day); });
+}
 function render() {
   if (!TABS.some((t) => t.id === ui.tab)) ui.tab = 'cal'; // 없어진 메뉴(예전 '오늘')는 캘린더로
+  if (ui.tab !== renderedTab) { ui.tabDate = null; renderedTab = ui.tab; } // 다른 탭으로 가면 날짜 줄은 오늘로 돌아가요
   renderTabs();
   if (ui.tab === 'violin') renderViolin();
   else if (ui.tab === 'english') renderEnglish();
@@ -688,6 +698,7 @@ function render() {
   else if (ui.tab === 'cal') renderCalendar();
   else if (ui.tab === 'week') renderWeek();
   else renderArt();
+  markTabDate();
   applySeason();
   syncPlayButtons();
 }
@@ -1190,6 +1201,7 @@ function renderViolin() {
   view.innerHTML = `
     <h2 class="page-title">바이올린</h2>
     <p class="page-sub">손을 쓴 날을 가볍게 남겨요. 잘했는지 못했는지 점수는 매기지 않아요.</p>
+    ${dateBarHTML()}
     <div class="row actions-row add-row">
       <button type="button" class="btn" data-act="add" data-type="violin">＋ 바이올린 기록</button>
     </div>
@@ -1208,6 +1220,31 @@ const routineOn = (date) => records.find((r) => r.type === 'econRoutine' && r.da
 const routineChecked = (r, id) => !!(r && r.checks && r.checks[id]);
 const chipRoutine = () => ECON_ROUTINES.find((x) => Array.isArray(x.chips) && x.chips.length); // 칩(읽은 뉴스레터)이 달린 항목
 const routineIcons = (r) => ECON_ROUTINES.filter((x) => routineChecked(r, x.id)).map((x) => x.icon); // 목록에 없는 id는 조용히 무시
+/* ---- 날짜 줄 (🎻 바이올린 · 📚 경제 루틴 · 📰 영어 · 🎨 그림 탭의 제목 아래) ----
+   "◀ 10/8(목) ▶ · 오늘": 어제 것을 깜빡했을 때 캘린더까지 가지 않고 그 탭에서 바로 남겨요. 하루씩 과거로 갈 수 있고 미래로는 못 가요.
+   바뀌는 것은 입력·체크(경제 루틴 · 영어 팟캐스트)와 ＋ 기록 창에 미리 채워지는 날짜뿐이에요. 목록은 그대로 전체 최신순이에요. */
+const DATE_TABS = ['violin', 'econ', 'english', 'art'];
+const tabDay = () => (ui.tabDate && ui.tabDate < todayStr() ? ui.tabDate : todayStr()); // 오늘이거나 그보다 앞선 날짜
+const viewingPast = () => tabDay() !== todayStr();
+const slashDow = (s) => `${Number(s.slice(5, 7))}/${Number(s.slice(8, 10))}(${'일월화수목금토'[parseDate(s).getDay()]})`;
+function dateBarHTML() {
+  const day = tabDay(); const today = todayStr(); const past = day !== today;
+  return `<div class="date-bar${past ? ' past' : ''}" role="group" aria-label="기록할 날짜">
+    <button type="button" class="btn ghost small" data-act="tabDateShift" data-d="-1" aria-label="전날">◀</button>
+    <span class="date-bar-pick"><button type="button" class="date-bar-text" data-act="tabDatePick" aria-label="날짜 고르기: ${esc(slashDow(day))}">${esc(slashDow(day))}</button><input type="date" class="date-bar-in" data-tabdate max="${today}" min="2000-01-01" value="${day}" tabindex="-1" aria-hidden="true"></span>
+    <button type="button" class="btn ghost small" data-act="tabDateShift" data-d="1" aria-label="다음 날"${past ? '' : ' disabled aria-disabled="true"'}>▶</button>
+    ${past ? '<button type="button" class="btn ghost small" data-act="tabDateToday">오늘</button>' : ''}
+  </div>`;
+}
+// 저장하지 않은 한 줄(경제 루틴 · 팟캐스트)이 있으면 탭을 옮길 때와 같은 확인을 하고 날짜를 옮겨요
+async function setTabDate(d) {
+  const today = todayStr();
+  if (!d || d > today) d = today;
+  if (d === tabDay()) return;
+  if (!(await confirmLeaveNote()) || !(await confirmLeavePodcast())) { render(); return; } // 취소하면 그 자리 (쓰던 글은 그대로)
+  ui.tabDate = d === today ? null : d;
+  render();
+}
 const dayWithDow = (s) => `${shortDay(s)} (${'일월화수목금토'[parseDate(s).getDay()]})`;
 const noteDay = (s) => (s.slice(0, 4) === String(new Date().getFullYear()) ? shortDay(s) : `${s.slice(0, 4)}년 ${shortDay(s)}`);
 
@@ -1301,7 +1338,7 @@ async function saveRoutineNote(date) {
 
 // 다른 탭으로 가기 전에: 저장하지 않은 한 줄이 있으면 물어봐요. 저장하고 가면 true, 취소하면 그 자리에 머물러요(쓰던 글은 그대로).
 async function confirmLeaveNote() {
-  const date = todayStr();
+  const date = tabDay();
   if (ui.tab !== 'econ' || !noteDirty(date)) return true;
   if (!confirm('저장하지 않은 한 줄이 있어요. 저장할까요?')) return false;
   return saveRoutineNote(date);
@@ -1358,16 +1395,16 @@ function routineWeekHTML() {
     <p class="meta wk-stamp-say" id="wkStampSay" role="status" hidden></p>` : ''}
     <button type="button" class="link-btn past-notes" data-act="pastNotes">지난 한 줄 보기</button>
     <button type="button" class="link-btn term-link" data-act="termsOpen">${termsAll().length ? '📒 용어 노트' : '📒 용어 노트 시작하기'}</button>
-    <p class="meta wk-note">지난 날 체크는 📅 캘린더에서 그 날짜를 눌러 해요.</p>
+    <p class="meta wk-note">지난 날 체크는 위의 날짜 줄(◀)에서 해요.</p>
   </div>`;
 }
 
 function routineScreenHTML() {
-  const today = todayStr();
+  const day = tabDay();
   return `<section class="routine card">
-    <div class="rt-date">${esc(dayWithDow(today))}</div>
-    ${routineRowsHTML(today)}
-    ${routineNoteHTML(today)}
+    <div class="rt-date">${esc(viewingPast() ? `${slashDow(day)} 경제 루틴` : dayWithDow(day))}</div>
+    ${routineRowsHTML(day)}
+    ${routineNoteHTML(day)}
     ${routineWeekHTML()}
   </section>`;
 }
@@ -1377,6 +1414,7 @@ function renderEcon() {
   view.innerHTML = `
     <h2 class="page-title">경제 루틴</h2>
     <p class="page-sub">매일 조금씩, 가볍게 점검해요.</p>
+    ${ui.econView === 'terms' ? '' : dateBarHTML()}
     <div class="chips">${viewChips('econView', ui.econView, [['routine', '✅ 오늘 루틴'], ['terms', '📒 용어 노트']])}</div>
     ${ui.econView === 'terms' ? termsScreenHTML() : routineScreenHTML()}`;
 }
@@ -1539,6 +1577,7 @@ function renderArt() {
   view.innerHTML = `
     <h2 class="page-title">🎨 그림</h2>
     <p class="page-sub">그리고 싶은 날 놀러 오는 곳이에요. 안 그려도 괜찮아요.</p>
+    ${dateBarHTML()}
     <div class="row actions-row add-row">
       <button type="button" class="btn" data-act="add" data-type="art">＋ 그림 올리기</button>
     </div>
@@ -1702,7 +1741,7 @@ async function savePodcastTitle(date) {
   return true;
 }
 async function confirmLeavePodcast() {
-  const date = todayStr();
+  const date = tabDay();
   if (ui.tab !== 'english' || !podDirty(date)) return true;
   if (!confirm('저장하지 않은 한 줄이 있어요. 저장할까요?')) return false;
   return savePodcastTitle(date);
@@ -1739,7 +1778,8 @@ function renderEnglish() {
   view.innerHTML = `
     <h2 class="page-title">영어</h2>
     <p class="page-sub">일주일에 기사 하나, 세 줄로 정리해요. 영어 팟캐스트를 들은 날은 맨 위에서 체크해요.</p>
-    ${podcastHTML(todayStr())}
+    ${dateBarHTML()}
+    ${podcastHTML(tabDay())}
     <div class="row actions-row add-row">
       <button type="button" class="btn" data-act="add" data-type="englishArticle">＋ 이번 주 기사 추가</button>
     </div>
@@ -2891,9 +2931,9 @@ function afterNewRecord(rec) {
 async function addArtFromFiles(files) {
   const imgs = files.filter(isImage);
   if (!imgs.length) { toast('이미지 파일(사진)만 올릴 수 있어요.'); return; }
-  openForm('art', undefined, undefined, { artKind: '크로키' });
+  openForm('art', undefined, viewingPast() ? tabDay() : undefined, { artKind: '크로키' });
   const dateInput = $('#f_date');
-  if (dateInput) dateInput.value = dateOfFile(imgs[0]); // 사진 파일의 날짜를 미리 넣어 둬요 (바꿀 수 있어요)
+  if (dateInput && !viewingPast()) dateInput.value = dateOfFile(imgs[0]); // 사진 파일의 날짜를 미리 넣어 둬요 (바꿀 수 있어요)
   await attachShots(imgs);
 }
 
@@ -5061,6 +5101,9 @@ document.addEventListener('click', async (e) => {
     case 'termCancel': ui.termEdit = null; ui.termAdding = false; refreshTerms(); break;
     case 'termDelete': await deleteTerm(id); break;
     case 'wkShift': ui.weekStart = addDays(ui.weekStart || weekStartOf(todayStr()), 7 * Number(el.dataset.d)); render(); break; // 🗓 ◀ ▶ 주 이동
+    case 'tabDateShift': await setTabDate(addDays(tabDay(), Number(el.dataset.d))); break;
+    case 'tabDateToday': await setTabDate(todayStr()); break;
+    case 'tabDatePick': { const inp = el.parentElement.querySelector('.date-bar-in'); if (inp) { try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); } } break; } // 날짜 글자를 누르면 날짜 선택 창
     case 'wkToday': if (ui.weekStart) { ui.weekStart = null; render(); } break; // 🗓 [이번 주] (이미 이번 주면 아무 일도 없어요)
     case 'wkPaste': openDlg(`<h2>📋 기본 시간표 붙여 넣기</h2>${pasteBoxHTML()}`, true); syncPasteBox(); break;
     case 'wkCheck': if (!el.disabled) await setWeekCheck(el.dataset.date, Number(el.dataset.i || 0), el.getAttribute('aria-pressed') !== 'true'); break; // 🗓 표에서 운동 블록을 누르면 했어요 체크 켜기·끄기
@@ -5082,7 +5125,7 @@ document.addEventListener('click', async (e) => {
     }
     case 'artOpen': openArt(id); break;
     case 'artNav': artNav(Number(el.dataset.d)); break;
-    case 'add': openForm(type); break;
+    case 'add': openForm(type, undefined, DATE_TABS.includes(ui.tab) && !dlg.open ? tabDay() : undefined); break; // 날짜 줄의 날짜를 미리 채워요 (바꿀 수 있어요)
     case 'edit': openForm(type, records.find((r) => r.id === id)); break;
     case 'del': {
       const r = records.find((x) => x.id === id);
@@ -5274,6 +5317,7 @@ document.addEventListener('submit', (e) => {
 document.addEventListener('change', async (e) => {
   const t = e.target;
   if (t.dataset.routine && t.type === 'checkbox') { await setRoutineCheck(t.dataset.date, t.dataset.routine, t.checked); }
+  if ('tabdate' in t.dataset) { await setTabDate(t.value); return; }
   if ('podcast' in t.dataset && t.type === 'checkbox') { await setPodcastCheck(t.dataset.date, t.checked); }
   else if (t.id === 'f_kind' && t.form && t.form.id === 'recForm') { syncKindFields(t.form); }
   else if (t.id === 'f_date') { // 날짜를 바꾸면 "새벽 4시 전이라 어제 기록" 안내는 사라져요

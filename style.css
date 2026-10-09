@@ -846,3 +846,15 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
   .wkt-chip { font-size: .68rem; padding: 1px 6px; }
   .wkt-rest { font-size: .85rem; }
 }
+
+/* ---------- 날짜 줄 (🎻 📚 📰 🎨 탭 제목 아래) ---------- */
+.date-bar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: nowrap; margin: 0 0 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.date-bar.past { background: var(--warm-soft); border-color: var(--warm-soft); } /* 오늘이 아닌 날짜를 보고 있을 때 */
+.date-bar .btn.small { flex: 0 0 auto; min-width: 44px; min-height: 44px; padding: 8px 12px; }
+.date-bar-pick { position: relative; flex: 0 1 auto; min-width: 0; }
+.date-bar-text { min-height: 44px; padding: 8px 12px; border: 0; background: transparent; color: var(--ink); font: inherit; font-weight: 800; font-size: 1.05rem; white-space: nowrap; cursor: pointer; border-radius: 10px; }
+.date-bar-text:hover, .date-bar-text:focus-visible { background: var(--bg); }
+.date-bar-in { position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }
+.card.on-date { border-left: 4px solid var(--warm); }
+.art-tile.on-date .art-thumb { outline: 3px solid var(--warm); outline-offset: 1px; }
+@media (max-width: 560px) { .date-bar { gap: 4px; padding: 4px 6px; } .date-bar .btn.small { padding: 8px 10px; } } /* 폴드 커버 폭: 한 줄에 들어가게 */
