@@ -858,3 +858,9 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .card.on-date { border-left: 4px solid var(--warm); }
 .art-tile.on-date .art-thumb { outline: 3px solid var(--warm); outline-offset: 1px; }
 @media (max-width: 560px) { .date-bar { gap: 4px; padding: 4px 6px; } .date-bar .btn.small { padding: 8px 10px; } } /* 폴드 커버 폭: 한 줄에 들어가게 */
+
+/* ---------- 🗓 표에서 블록 고치기 ---------- */
+.wkt-edit { position: absolute; z-index: 2; width: 16px; height: 16px; margin: 1px 0 0; padding: 0; border: 0; border-radius: 8px; background: var(--card); color: var(--ex-ink); font: inherit; font-size: .6rem; line-height: 16px; text-align: center; cursor: pointer; }
+.wkt-chip-edit { margin-left: -2px; padding: 0 6px; border: 0; background: transparent; color: var(--ex-ink); font: inherit; font-size: .7rem; cursor: pointer; }
+button.wkt-b.t-online, button.wkt-b.t-face, button.wkt-chip.t-online, button.wkt-chip.t-face { cursor: pointer; }
+.wb-opt { display: flex; align-items: center; gap: 8px; font-weight: 600; }
