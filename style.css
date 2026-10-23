@@ -866,8 +866,3 @@ button.wkt-b, button.wkt-chip { cursor: pointer; transition: filter .12s; } /* ê
 button.wkt-b:hover, button.wkt-chip:hover { filter: brightness(.96); }
 button.wkt-b:active, button.wkt-chip:active { filter: brightness(.9); }
 button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.wkp-dayex { display: grid; gap: 6px; }
-.wkp-dayex-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--ex); border-radius: 12px; background: var(--ex-soft); color: var(--ex-ink); font: inherit; text-align: left; cursor: pointer; }
-.wkp-dayex-row:hover { filter: brightness(.96); }
-.wkp-dayex-row:active { filter: brightness(.9); }
-.wkp-dayex-n { flex: 1 1 auto; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
