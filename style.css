@@ -860,7 +860,14 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 @media (max-width: 560px) { .date-bar { gap: 4px; padding: 4px 6px; } .date-bar .btn.small { padding: 8px 10px; } } /* 폴드 커버 폭: 한 줄에 들어가게 */
 
 /* ---------- 🗓 표에서 블록 고치기 ---------- */
-.wkt-edit { position: absolute; z-index: 2; width: 16px; height: 16px; margin: 1px 0 0; padding: 0; border: 0; border-radius: 8px; background: var(--card); color: var(--ex-ink); font: inherit; font-size: .6rem; line-height: 16px; text-align: center; cursor: pointer; }
-.wkt-chip-edit { margin-left: -2px; padding: 0 6px; border: 0; background: transparent; color: var(--ex-ink); font: inherit; font-size: .7rem; cursor: pointer; }
 button.wkt-b.t-online, button.wkt-b.t-face, button.wkt-chip.t-online, button.wkt-chip.t-face { cursor: pointer; }
 .wb-opt { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+button.wkt-b, button.wkt-chip { cursor: pointer; transition: filter .12s; } /* 과외·운동 블록 모두 같은 누르는 느낌 */
+button.wkt-b:hover, button.wkt-chip:hover { filter: brightness(.96); }
+button.wkt-b:active, button.wkt-chip:active { filter: brightness(.9); }
+button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.wkp-dayex { display: grid; gap: 6px; }
+.wkp-dayex-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--ex); border-radius: 12px; background: var(--ex-soft); color: var(--ex-ink); font: inherit; text-align: left; cursor: pointer; }
+.wkp-dayex-row:hover { filter: brightness(.96); }
+.wkp-dayex-row:active { filter: brightness(.9); }
+.wkp-dayex-n { flex: 1 1 auto; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }

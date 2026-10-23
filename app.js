@@ -2196,22 +2196,23 @@ function blockFormHTML() {
       <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button>${w.mode === 'edit' ? `<button type="button" class="btn danger" data-act="wkBlockDel">${tutor ? '이 주만 지우기' : '지우기'}</button>` : ''}<button type="submit" class="btn">저장</button></div>
     </form>`;
 }
+const fromDayDlg = () => dlg.open && !!dlg.querySelector('.day-list') && ui.tab === 'week'; // 요일 머리 창에서 열었으면 끝나고 그 창으로 돌아가요
 function openTutorEdit(date, id) {
   const sun = weekStartOf(date);
   const b = tutorBlocksOf(sun).find((x) => x.id === id);
   if (!b) return;
-  ui.wkEdit = { kind: 'tutor', mode: 'edit', date, id, block: b };
+  ui.wkEdit = { kind: 'tutor', mode: 'edit', date, id, block: b, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
 }
 function openExEdit(date, i) {
   const sun = weekStartOf(date); const dow = parseDate(date).getDay();
   const b = exBlocksOf(sun, dow)[i];
   if (!b) return;
-  ui.wkEdit = { kind: 'ex', mode: 'edit', date, i, block: b };
+  ui.wkEdit = { kind: 'ex', mode: 'edit', date, i, block: b, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
 }
 function openBlockAdd(kind, date) {
-  ui.wkEdit = { kind, mode: 'add', date, block: {} };
+  ui.wkEdit = { kind, mode: 'add', date, block: {}, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
 }
 async function saveWeekBlock() {
@@ -2245,7 +2246,8 @@ async function saveWeekBlock() {
     });
   }
   ui.wkEdit = null;
-  closeDlg(); render(); refreshDay();
+  render();
+  if (w.fromDay) openDay(w.date); else closeDlg();
   toast(w.mode === 'add' ? '이 주에 블록을 더했어요.' : '이 주에 반영했어요.', 2500);
   return true;
 }
@@ -2266,22 +2268,17 @@ async function deleteWeekBlock() {
     await remapWorkoutPlans(sun, { [dow]: map });
   }
   ui.wkEdit = null;
-  closeDlg(); render(); refreshDay();
+  render();
+  if (w.fromDay) openDay(w.date); else closeDlg();
   toast('이 주에서 지웠어요.', 2500);
 }
-// 운동 블록을 길게 누르면 고치기 창 (한 번 누르면 "했어요" 체크)
-let wkLong = { timer: 0, x: 0, y: 0, until: 0 };
-const wkLongStop = () => { clearTimeout(wkLong.timer); wkLong.timer = 0; };
-document.addEventListener('pointerdown', (e) => {
-  const b = e.target.closest && e.target.closest('[data-act=wkCheck]');
-  if (!b || e.button > 0) return;
-  wkLong.x = e.clientX; wkLong.y = e.clientY;
-  wkLongStop();
-  wkLong.timer = setTimeout(() => { wkLong.timer = 0; wkLong.until = Date.now() + 700; openExEdit(b.dataset.date, Number(b.dataset.i || 0)); }, 550);
-});
-document.addEventListener('pointermove', (e) => { if (wkLong.timer && Math.hypot(e.clientX - wkLong.x, e.clientY - wkLong.y) > 10) wkLongStop(); });
-['pointerup', 'pointercancel', 'pointerleave'].forEach((t) => document.addEventListener(t, wkLongStop, true));
-document.addEventListener('contextmenu', (e) => { if (e.target.closest && e.target.closest('[data-act=wkCheck]')) e.preventDefault(); }); // 폰에서 길게 눌러도 메뉴가 뜨지 않게
+// 요일 머리 창 안의 그날 운동 블록 목록 (한 줄씩, 누르면 고치기 창)
+function weekDayExRowsHTML(date) {
+  const dow = parseDate(date).getDay();
+  const blocks = exBlocksOf(weekStartOf(date), dow);
+  if (!blocks.length) return '<p class="meta wkp-dayex-empty">이 요일에는 운동 블록이 없어요.</p>';
+  return `<div class="wkp-dayex">${blocks.map((b, i) => `<button type="button" class="wkp-dayex-row" data-act="wkEx" data-date="${date}" data-i="${i}"><span class="wkp-dayex-n">${esc(b.name)}</span><span class="meta">${esc([blockTime(b), b.optional ? '선택' : ''].filter(Boolean).join(' · '))}</span><span aria-hidden="true">✎</span></button>`).join('')}</div>`;
+}
 
 // ↺ 이번 주를 기본 시간표로: 이 주만 바꾼 과외·📥 로 붙여 넣은 운동·메모를 지워요 (체크는 그대로, 저장돼 있는 몸무게도 그대로)
 async function resetWeekToBase() {
@@ -2393,7 +2390,7 @@ function weekTableHTML(model, opts = {}) {
       const c = `wkt-b ${cls(x)}${hgt < 36 ? ' short' : hgt < 60 ? ' mid' : ''}`;
       if (!opts.preview && x.kind === 't') return `<button type="button" class="${c}" style="${style}" data-act="wkTutor" data-date="${date}" data-id="${esc(x.b.id)}" title="${esc(label)} · 눌러서 고치기" aria-label="${esc(`${label}, 눌러서 고치기`)}">${inner}</button>`; // 과외 블록: 눌러서 고치기
       return !opts.preview && x.kind === 'x' // 운동 블록: 눌러서 했어요 체크 (아직 안 온 날은 눌러도 안 돼요) · 길게 누르거나 ✎ 로 고치기
-        ? `<button type="button" class="${c}${on ? ' on' : ''}" style="${style}" data-act="wkCheck" data-date="${date}" data-i="${x.i}" aria-pressed="${on ? 'true' : 'false'}" ${date > today ? 'disabled' : ''} title="${esc(label)}" aria-label="${esc(label)}">${inner}</button><button type="button" class="wkt-edit" style="top:${top}px;left:calc(${x.lane + 1} * 100% / ${x.n} - 18px)" data-act="wkEx" data-date="${date}" data-i="${x.i}" title="이 운동 블록 고치기" aria-label="${esc(`${DOW[d]}요일 ${x.b.name} 고치기`)}">✎</button>`
+        ? `<button type="button" class="${c}${on ? ' on' : ''}" style="${style}" data-act="wkCheck" data-date="${date}" data-i="${x.i}" aria-pressed="${on ? 'true' : 'false'}" ${date > today ? 'disabled' : ''} title="${esc(label)}" aria-label="${esc(label)}">${inner}</button>`
         : `<div class="${c}" style="${style}" title="${esc(label)}">${inner}</div>`;
     }).join('');
     const empty = !day.tutors.length && !day.ex.length;
@@ -2407,7 +2404,7 @@ function weekTableHTML(model, opts = {}) {
     const label = `${DOW[d]}요일 ${b.name}${b.optional ? ' 선택' : ''} 운동${on ? ' (했어요)' : ''}`;
     return opts.preview
       ? `<span class="wkt-chip ex${b.optional ? ' opt' : ''}">${nm}</span>`
-      : `<button type="button" class="wkt-chip ex${b.optional ? ' opt' : ''}${on ? ' on' : ''}" data-act="wkCheck" data-date="${date}" data-i="${b.i}" aria-pressed="${on ? 'true' : 'false'}" ${date > today ? 'disabled' : ''} title="${esc(label)}" aria-label="${esc(label)}">${on ? '✓ ' : ''}${nm}</button><button type="button" class="wkt-chip-edit" data-act="wkEx" data-date="${date}" data-i="${b.i}" title="이 운동 블록 고치기" aria-label="${esc(`${DOW[d]}요일 ${b.name} 고치기`)}">✎</button>`;
+      : `<button type="button" class="wkt-chip ex${b.optional ? ' opt' : ''}${on ? ' on' : ''}" data-act="wkCheck" data-date="${date}" data-i="${b.i}" aria-pressed="${on ? 'true' : 'false'}" ${date > today ? 'disabled' : ''} title="${esc(label)}" aria-label="${esc(label)}">${on ? '✓ ' : ''}${nm}</button>`;
   };
   const anyUntimed = untimed.some((u) => u.length);
   const heads = Array.from({ length: 7 }, (_, d) => { // 요일 머리를 누르면 그날의 기록 창(캘린더의 날짜 창)이 열려요: 운동 기록 보기 · 더하기 · 고치기 · 지우기
@@ -2831,7 +2828,9 @@ function openDay(date) {
     <div class="day-list">${cards.join('')}${!list.length ? '<div class="empty">기록이 없어요.</div>' : ''}${routineSec}${podcastSec}</div>
     <div class="label" style="margin:14px 0 6px">이 날짜에 기록 더하기</div>
     <div class="row actions-row">${add}</div>
-    ${ui.tab === 'week' ? `<div class="label" style="margin:14px 0 6px">이 요일 시간표에 블록 더하기 <span class="meta">(이 주에만)</span></div>
+    ${ui.tab === 'week' ? `<div class="label" style="margin:14px 0 6px">이 요일의 운동 블록 <span class="meta">(눌러서 고치기 · 이 주에만)</span></div>
+    ${weekDayExRowsHTML(date)}
+    <div class="label" style="margin:14px 0 6px">이 요일 시간표에 블록 더하기 <span class="meta">(이 주에만)</span></div>
     <div class="row actions-row"><button type="button" class="btn ghost small" data-act="wkAddTutor" data-date="${date}">＋ 이 요일에 과외 블록</button><button type="button" class="btn ghost small" data-act="wkAddEx" data-date="${date}">＋ 이 요일에 운동 블록</button></div>` : ''}
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`, true);
 }
@@ -5268,7 +5267,7 @@ document.addEventListener('click', async (e) => {
     case 'wkAddEx': openBlockAdd('ex', el.dataset.date); break;
     case 'wkBlockDel': await deleteWeekBlock(); break;
     case 'wkText': openWeekAi(true); break;
-    case 'wkCheck': if (Date.now() < wkLong.until) break; if (!el.disabled) await setWeekCheck(el.dataset.date, Number(el.dataset.i || 0), el.getAttribute('aria-pressed') !== 'true'); break; // 🗓 표에서 운동 블록을 누르면 했어요 체크 켜기·끄기
+    case 'wkCheck': if (!el.disabled) await setWeekCheck(el.dataset.date, Number(el.dataset.i || 0), el.getAttribute('aria-pressed') !== 'true'); break; // 🗓 표에서 운동 블록을 누르면 했어요 체크 켜기·끄기
     case 'wkAi': openWeekAi(); break;
     case 'wkAiApply': await applyWeekAi(); break;
     case 'wkReset': await resetWeekToBase(); break;
