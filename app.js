@@ -272,7 +272,7 @@ const STAMPS = {
   routine: ['오늘도 한 걸음', '오늘의 경제 한 칸', '가볍게 체크했어요', '흐름 하나 잡았어요', '차곡차곡 쌓여요', '오늘도 체크했어요', '세상 돌아가는 걸 살짝 들여다봤어요', '귀와 눈이 한 뼘 넓어졌어요', '경제 공부 습관이 자라요', '가볍게 접해도 남는 게 있어요', '오늘의 경제 감각 충전', '알아가는 중이에요', '뉴스 한 모금, 잘 마셨어요', '공부할 시간을 내 줬어요', '조금씩 익숙해지고 있어요', '오늘도 세상을 읽었어요', '경제 한 칸을 챙겼어요'],
   english: ['기사 하나 읽었어요', '영어 한 줄 남겼어요', '오늘도 영어 한 칸', '읽고 정리했어요', '영어 감을 켜 뒀어요', '요약까지 해냈어요', '핵심을 잘 짚었어요', '읽는 눈이 즐거웠어요', '내 말로 정리했어요', '문장 사이를 잘 걸었어요', '기사 한 편의 여유', '영어와 오늘도 만났어요', '생각까지 담았어요', '읽은 것을 남겼어요', '잘 읽고 잘 정리했어요', '영어 근육을 살짝 썼어요'],
   art: ['오늘도 그렸어요', '선 하나 더 그었어요', '손이 움직였어요', '그림 한 칸 남겼어요', '종이 위에 오늘이 남았어요', '눈과 손이 만났어요', '연필 소리가 들리는 것 같아요', '색이든 선이든 충분해요', '그리는 시간이 반짝였어요', '오늘의 선을 모아 뒀어요', '손끝에서 풍경이 나왔어요', '그림 앞에 앉은 것만으로 멋져요', '자유롭게 그은 선이 좋아요', '마음을 한 장에 담았어요', '이 그림, 잘 간직해 뒀어요', '그린 만큼 눈이 열려요'],
-  study: ['오늘도 책상에 앉았어요', '한 단원 넘겼어요', '펼친 것만으로 충분해요', '차근차근 쌓이고 있어요', '오늘 몫을 남겼어요', '손이 문제를 기억해요', '한 줄 적어 뒀어요', '조용히 한 칸 채웠어요', '앉은 시간이 남았어요', '오늘도 한 걸음 나아갔어요', '풀어 본 것이 남았어요', '꾸준히 펼쳤어요', '오늘 공부, 잘 챙겼어요', '다음 장이 기다려요', '공부한 날로 남겨 뒀어요', '노트가 한 칸 늘었어요'],
+  study: ['오늘도 책상에 앉았어요', '한 단원 넘겼어요', '펼친 것만으로 충분해요', '차근차근 쌓이고 있어요', '오늘 몫을 남겼어요', '손이 문제를 기억해요', '한 줄 적어 뒀어요', '조용히 한 칸 채웠어요', '앉은 시간이 남았어요', '오늘도 한 걸음 나아갔어요', '풀어 본 것이 남았어요', '책장을 넘겼어요', '오늘 공부, 잘 챙겼어요', '책상 위에 펼쳐 뒀어요', '공부한 날로 남겨 뒀어요', '노트에 한 칸 남겼어요'],
   rest: ['쉬는 것도 기록이에요', '충전하는 날이에요', '푹 쉬었어요', '쉬는 날도 기록이에요', '오늘은 쉬어 가요', '쉼도 연습의 일부예요', '아무것도 안 해도 괜찮아요', '잘 쉬는 것도 재주예요', '내일의 힘을 모으는 날', '숨 고르는 하루', '편안한 하루를 남겼어요', '쉬어야 오래 가요', '오늘은 나를 돌본 날', '느긋하게 보냈어요', '푹 자고 푹 쉬었어요', '쉼표를 찍었어요'],
   feedback: ['피드백, 잘 받아 뒀어요', '잘한 점을 담아 뒀어요', '읽을거리 하나 쌓였어요', '답변을 잘 챙겼어요', '피드백 한 칸 남겼어요', '칭찬을 잘 모셔 뒀어요', '좋은 말이 기록장에 들어왔어요', '다시 읽고 싶은 답변이에요', '잘한 점이 반짝여요', '응원을 받아 왔어요', '받아 적는 마음이 예뻐요', '답변 속 잘한 점, 저장 완료', '돌아볼 거리가 생겼어요', '기록장에 응원이 도착했어요', '귀한 말씀 잘 챙겼어요', '잘 받아 두었어요'],
   night: ['늦은 밤까지 수고했어요', '오늘 하루도 잘 마무리했어요', '밤에도 남겼어요', '이제 쉬어도 돼요', '오늘 하루도 여기까지', '이제 푹 쉬어요', '고요한 밤에 남겼어요', '하루의 끝에 기록장을 열었어요', '밤이 깊어도 챙겼어요', '불을 끄기 전에 남겼어요', '오늘도 정말 애썼어요', '별빛 아래 마무리했어요', '잘 자요, 오늘도 수고했어요', '늦어도 괜찮아요, 남겼으니까요', '하루를 잘 접었어요', '포근한 밤이에요', '오늘 밤은 편히 쉬어요'],
@@ -329,6 +329,9 @@ const CLAUDE_SCOPES = [
   { id: 'english', icon: '📰', label: '영어',
     info: '영어 강사라 영어는 능숙한 편이에요. 주 1회 기사를 읽고 3줄 요약으로 감을 유지해요.',
     request: '요약이 기사 핵심을 잘 잡았는지 봐 주고, 더 자연스럽게 고친 버전을 짧게 보여 줘.' },
+  { id: 'study', icon: '📐', label: '수능',
+    info: '28학년도 수능 준비 중(2027년 11월). 전업 과외와 병행해서 빈 오후·주말에 공부해요. 지금은 수학부터.',
+    request: "진도 흐름을 봐 주고, 로드맵과 어긋난 곳이 있으면 짚어 줘. 다음 주 로드맵을 '로드맵:' 아래에 주 단위로 써 줘." },
   { id: 'drawing', icon: '🎨', label: '그림',
     info: '그림은 사이드 취미. 이제 크로키부터 주 1~2회 그리려고 함. 모작 위주였고, 창작할 실력을 키우는 게 목표.',
     request: '올린 그림을 보고 잘한 점과 달라진 점을 봐 줘.' },
@@ -3028,7 +3031,7 @@ const CAL_CATS = [
   { id: 'english', chip: 'english', icon: '📰', label: '영어', iconOnly: true, test: (r) => r.type === 'englishArticle' },
   { id: 'podcast', chip: 'english', icon: '🎧', label: '영어 팟캐스트', iconOnly: true, stampArea: 'english', test: (r) => r.type === 'englishPodcast' }, // 📰 영어 칩에 함께 묶여요. 도장 문구는 영어 것을 써요
   { id: 'study', chip: 'study', icon: '📐', label: '공부', test: (r) => r.type === 'study' },
-  { id: 'mock', chip: 'study', icon: '📝', label: '모평·학평', stampArea: 'study', test: (r) => r.type === 'mockExam' },
+  { id: 'mock', chip: 'study', icon: '📝', label: '모평·학평', iconOnly: true, stampArea: 'study', test: (r) => r.type === 'mockExam' },
   { id: 'art', chip: 'art', icon: '🎨', label: '그림', test: (r) => r.type === 'art' },
   { id: 'rest', chip: 'rest', icon: '😴', label: '쉼', test: (r) => r.type === 'rest' },
 ];
@@ -3038,6 +3041,7 @@ const CAL_CHIPS = [
   { id: 'violin', icon: '🎻', label: '바이올린' },
   { id: 'routine', icon: '🎧', label: '경제 루틴' },
   { id: 'english', icon: '📰', label: '영어' },
+  { id: 'study', icon: '📐', label: '수능' },
   { id: 'art', icon: '🎨', label: '그림' },
   { id: 'rest', icon: '😴', label: '쉼' },
 ];
@@ -3107,7 +3111,9 @@ function renderCalendar() {
     const shade = `${groups.length && !onlyRest ? ' has' : ''}${onlyRest ? ' rest-only' : ''}${top ? ` amt${top}` : ''}`;
     cells.push(`<button type="button" class="cal-cell${shade}${date === today ? ' today' : ''}" data-act="calDay" data-date="${date}" aria-label="${esc(dayLabel(date))}, ${esc(say)}${top ? `, ${amountWord(topRec)} ${AMOUNTS[top - 1].label}` : ''}">
       <span class="cal-num">${d}</span>
-      <span class="cal-marks">${groups.map((g) => (g.c.iconOnly
+      <span class="cal-marks">${groups.map((g) => (g.c.id === 'study'
+        ? `<span class="cal-mark study-mark" title="${esc(g.c.label)}">${[...new Set(g.items.map((r) => STUDY_SHORT[r.subject] || '📐'))].map((i) => `<span class="subj-chip">${i}</span>`).join('')}</span>` // 과목 머리글자(수·국·영·사·과·한) 작은 칩
+        : g.c.iconOnly
         ? `<span class="cal-mark icon-only ${g.c.id}" title="${esc(g.c.label)}">${(g.c.id === 'routine' ? routineIcons(g.items[0]) : [g.c.icon]).map((i) => `<span class="cal-ico">${i}</span>`).join('')}</span>` // 그림만 (루틴은 그날 체크한 항목, 영어는 📰)
         : `<span class="cal-mark${g.c.id === 'rest' ? ' rest' : ''}" title="${esc(g.c.label)}"><span class="cal-ico">${g.c.icon}</span><span class="cal-t">${esc(calTitle(g.items[0]))}</span></span>`)).join('')}</span>
     </button>`);
@@ -3302,6 +3308,14 @@ const RECAP_SECTIONS = [
     const rows = c.real.filter((r) => r.type === 'englishPodcast' && r.checked).sort(byOldest);
     return rows.length ? { title: '들은 영어 팟캐스트', html: `<ul class="note-list">${rows.map((r) => `<li><span class="meta">${esc(shortDay(r.date))}</span><span class="pre">🎧${hasValue(r.title) ? ` ${esc(r.title)}` : ''}</span></li>`).join('')}</ul>` } : null;
   } },
+  { id: 'study', build: (c) => { // 📐 이 달의 진도표 줄 · 공부 시간 합계 · 모평·학평 한 줄 (횟수 없이)
+    const rows = c.real.filter((r) => r.type === 'study').sort(byOldest);
+    const mocks = c.real.filter((r) => r.type === 'mockExam').sort(byOldest);
+    if (!rows.length && !mocks.length) return null;
+    const row = (r) => [r.subject, r.range, hasValue(r.note) ? `비고: ${r.note}` : ''].filter((x) => hasValue(x)).join(' · ');
+    const hrs = studyTimeText(studyMonthMin(c.ym));
+    return { title: '📐 수능', html: `${hrs ? `<p class="recap-big">${esc(hrs)}</p>` : ''}<ul class="note-list">${[...rows, ...mocks].sort(byOldest).map((r) => `<li><span class="meta">${esc(shortDay(r.date))}</span><span class="pre">${esc(r.type === 'mockExam' ? claudeLine(r) : row(r))}</span></li>`).join('')}</ul>` };
+  } },
   { id: 'tutor', build: (c) => { // 이 달의 과외 회수·시간 (🗓 이번 주 위의 시수 줄과 같은 계산. 달에 속한 날짜의 과외만, 과외가 없는 달은 줄 자체를 숨겨요)
     const t = tutorTotalsMonth(c.ym);
     return t.count ? { title: '과외', html: `<p class="recap-big">${esc(tutorTotalText(t))}</p>` } : null;
@@ -3376,7 +3390,7 @@ function openDay(date) {
       ${rt && hasValue(rt.note) ? textBlock('오늘 한 줄', rt.note) : ''}
     </section>` : '';
   const podcastSec = open ? podcastDaySecHTML(date) : '';
-  const add = [['workout', '운동'], ['violin', '바이올린'], ['englishArticle', '영어 기사'], ['study', '공부']]
+  const add = [['workout', '운동'], ['violin', '바이올린'], ['englishArticle', '영어 기사'], ['study', '공부'], ['mockExam', '모평·학평']]
     .map(([t, l]) => `<button type="button" class="btn ghost small" data-act="addOn" data-type="${t}" data-date="${date}">＋ ${l}</button>`).join('')
     + restButtonHTML(date);
   openDlg(`
@@ -4222,7 +4236,7 @@ dlg2.addEventListener('cancel', (e) => { e.preventDefault(); dlg2.close(); });
    기록 → 글로 복사 → 클로드에게 붙여 넣기 → 받은 답변 저장(잘한 점이 쌓여요). 해야 할 일은 만들지 않아요.
    (밖으로 나가는 요청은 없어요. 복사하고 붙여 넣는 방식이에요.)
    --------------------------------------------------------------------- */
-const COPY_SCOPES = ['all', 'violin', 'econ', 'english', 'drawing']; // 🤖 클로드 피드백의 범위 칩 (① 보내기 · ② 받은 답변 저장). 🌈 전체가 맨 앞이에요.
+const COPY_SCOPES = ['all', 'violin', 'econ', 'english', 'study', 'drawing']; // 🤖 클로드 피드백의 범위 칩 (① 보내기 · ② 받은 답변 저장). 🌈 전체가 맨 앞이에요.
 const AREA_SCOPES = COPY_SCOPES.filter((id) => id !== 'all'); // 영역 하나씩 (③ 받은 피드백의 범위 칩 · 🌈 전체 글의 영역 순서)
 // 기간 칩: 오늘 · 지난주 · 지난달. 저장되는 period 이름은 'day' | 'week' | 'month' 그대로예요 (예전에 '이번 주'·'이번 달'로 저장된 피드백도 같은 이름이고, 저장된 날짜 범위(rangeStart·rangeEnd) 그대로 보여요)
 const PERIODS = [{ id: 'day', label: '오늘' }, { id: 'week', label: '지난주' }, { id: 'month', label: '지난달' }];
@@ -4258,7 +4272,7 @@ function periodText(period, start, end) {
   if (!start) return name;
   return period === 'day' ? `${name}(${slashDay(start)})` : `${name}(${slashDay(start)}~${slashDay(end || start)})`;
 }
-const SCOPE_TYPES = { violin: ['violin'], econ: ['econRoutine'], english: ['englishArticle', 'englishPodcast'], drawing: ['art'], exercise: ['workout'] }; // exercise 는 범위 칩이 아니라 🌈 전체 글의 "── 🧘 운동 ──" 구역에만 써요
+const SCOPE_TYPES = { violin: ['violin'], econ: ['econRoutine'], english: ['englishArticle', 'englishPodcast'], study: ['study', 'mockExam'], drawing: ['art'], exercise: ['workout'] }; // exercise 는 범위 칩이 아니라 🌈 전체 글의 "── 🧘 운동 ──" 구역에만 써요
 const scopeRecords = (scope, start, end) => SCOPE_TYPES[scope].flatMap((t) => ofType(t)).filter((r) => r.date >= start && r.date <= end && (r.type !== 'englishPodcast' || r.checked)).sort(byOldest);
 // 그 기간에 기록이 있는 영역만 (📚 경제 루틴은 그 기간에 새로 정리한 용어도 함께). only 를 주면 그 영역 하나만 봐요.
 function claudeGroups(start, end, only = null) {
@@ -4267,6 +4281,21 @@ function claudeGroups(start, end, only = null) {
     .filter((g) => g.list.length || g.terms.length);
 }
 
+// 📐 수능 복사 글에 덧붙는 것: 그 기간 공부 시간 합계 · 교재마다 남은 단원 몇 줄(숫자 없이 앞쪽 몇 개) + "지난번: …" · 로드맵 글
+function studyExtraLines(list = []) {
+  const out = [];
+  const min = list.filter((r) => r.type === 'study').reduce((n, r) => n + (Number(r.minutes) || 0), 0);
+  if (min > 0) out.push(studyTimeText(min));
+  STUDY_SUBJECTS.forEach((sub) => {
+    studyCurriculum().filter((c) => c.subject === sub).map((c) => ({ c, u: c.units.filter((x) => !x.done) })).filter((x) => x.u.length).slice(0, 3).forEach(({ c, u }) => {
+      const last = lastRangeOfCur(c);
+      out.push(`남은 것 · ${sub} · ${c.name}${last ? ` (지난번: ${last})` : ''}: ${u.slice(0, 5).map((x) => x.name).join(', ')}${u.length > 5 ? ' …' : ''}`);
+    });
+  });
+  const road = studyRoadmaps();
+  STUDY_SUBJECTS.forEach((sub) => { if (String(road[sub] || '').trim()) out.push(`로드맵 (${sub}):\n${String(road[sub]).trim()}`); });
+  return out;
+}
 // 기록 한 줄 (채운 칸만)
 function claudeLine(r) {
   const bits = [mdLabel(r.date)];
@@ -4279,6 +4308,11 @@ function claudeLine(r) {
     if (amountOf(r)) rest.push(amountOf(r).label);
     if (hasValue(r.memo)) rest.push(oneLine(r.memo));
     return `${d.getMonth() + 1}/${d.getDate()}(${'일월화수목금토'[d.getDay()]}) ${rest.join(' · ')}`;
+  } else if (r.type === 'study') { // 진도표 한 줄: 날짜 · 과목 · 한 것 · 비고 (채운 칸만)
+    if (r.subject) bits.push(r.subject);
+    add('', r.range); add('비고', r.note);
+  } else if (r.type === 'mockExam') { // "📝 10/24 수학 84점 · 한 줄"
+    return `📝 ${slashDay(r.date)}${r.subject ? ` ${r.subject}` : ''}${r.score !== undefined && r.score !== '' ? ` ${r.score}점` : ''}${hasValue(r.memo) ? ` · ${oneLine(r.memo)}` : ''}`;
   } else if (r.type === 'englishPodcast') { // "🎧 10/6 제목" (제목이 없으면 날짜만)
     return `🎧 ${slashDay(r.date)}${hasValue(r.title) ? ` ${oneLine(r.title)}` : ''}`;
   } else if (r.type === 'violin' && r.kind === '레슨') {
@@ -4315,6 +4349,7 @@ function claudeLine(r) {
 
 // 지난주·지난달 요약 한 줄 (쉰 날·빈 날은 쓰지 않아요)
 function claudeSummary(scope, list) {
+  if (scope === 'study') return ''; // 수능은 횟수·합계를 쓰지 않아요
   if (scope === 'econ') return ECON_ROUTINES.map((x) => `${x.icon} ${list.filter((r) => routineChecked(r, x.id)).length}번`).join(' · ');
   if (scope === 'english') { const n = list.filter((r) => r.type === 'englishArticle').length; return n ? `기사 ${n}개` : ''; }
   const days = new Set(list.map((r) => r.date)).size;
@@ -4345,7 +4380,7 @@ function claudeText({ scope, period, list, terms = [], question = '', start = ''
   if (question.trim()) blocks.push(`이번에 특히 물어볼 것: ${oneLine(question)}`);
   const prev = lastFeedbackBlock(scope);
   if (prev) blocks.push(prev);
-  const body = [...[...list].sort(byOldest).map(claudeLine), ...(terms.length ? [termsLine(terms)] : [])];
+  const body = [...[...list].sort(byOldest).map(claudeLine), ...(terms.length ? [termsLine(terms)] : []), ...(scope === 'study' && list.length ? studyExtraLines(list) : [])];
   if (body.length) blocks.push([start ? `기간: ${periodText(period, start, end)}` : '', ...body].filter(Boolean).join('\n'));
   const sum = (period === 'week' || period === 'month') && list.length ? claudeSummary(scope, list) : '';
   if (sum) blocks.push(sum);
@@ -4362,6 +4397,7 @@ function claudeSection(g, period) {
   if (req) lines.push(req);
   [...g.list].sort(byOldest).forEach((r) => lines.push(claudeLine(r)));
   if (g.terms.length) lines.push(termsLine(g.terms));
+  if (g.scope === 'study') lines.push(...studyExtraLines(g.list));
   if ((period === 'week' || period === 'month') && g.list.length && g.scope !== 'exercise') { const sum = claudeSummary(g.scope, g.list); if (sum) lines.push(sum); } // 운동 구역은 날짜 줄만 (합계·비교 없음)
   return lines.join('\n');
 }
@@ -4737,10 +4773,38 @@ async function fbSave() {
   if (!rec) return;
   const stampNew = extractStampLines(answerText); // 답변 끝의 "도장 문구:" 줄들은 💮 칭찬으로 따로 저장해요 (새로 받으면 바꿔 끼워요)
   if (stampNew.length) await setConfig('stampLines', { lines: stampNew, savedAt: Date.now(), scope: t.scope });
+  await offerRoadmap(answerText, t);
   ui.claudeQuestion[t.scope] = ''; // 물어볼 것은 저장하면 비워져요
   ui.claudePending = null; ui.fbSaveScope = null; ui.fbOpen = false;
   ui.fbScope = 'all'; ui.fbCount = Math.max(5, ui.fbCount); // 방금 저장한 것이 맨 위에 보이게
   refreshFeedbackViews();
+}
+
+// 받은 답변의 "로드맵:" 아래 글 (제목 줄 뒤쪽부터 끝까지, "도장 문구" 부분은 빼요). 없으면 ''
+function extractRoadmap(text) {
+  const rows = stripStampSection(text).split(/\r?\n/);
+  let from = -1; let first = '';
+  rows.forEach((raw, i) => {
+    const t = stripMd(raw.trim().replace(/^(?:>\s*)+/, '').replace(/^#{1,6}\s*/, '').replace(/^(?:[-*•]|\d+[.)])\s+/, ''));
+    const m = t.match(/^(?:다음\s*주\s*)?로드맵\s*(?:\([^)]*\))?\s*[:：]\s*(.*)$/) || t.match(/^(?:다음\s*주\s*)?로드맵\s*(?:\([^)]*\))?$/);
+    if (m) { from = i; first = (m[1] || '').trim(); }
+  });
+  if (from < 0) return '';
+  const rest = rows.slice(from + 1);
+  const end = rest.findIndex((l) => /^#{1,6}\s/.test(l.trim())); // 다음 제목이 나오면 거기까지
+  return [first, ...(end >= 0 ? rest.slice(0, end) : rest)].join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+// 📐 수능 답변을 저장했을 때: "로드맵:" 글이 있으면 그 과목 로드맵 칸에 넣을지 물어봐요 (과목: 그 기간 공부 기록이 한 과목뿐이면 그 과목, 아니면 수학)
+async function offerRoadmap(answerText, t) {
+  if (t.scope !== 'study' && t.scope !== 'all') return;
+  const road = extractRoadmap(answerText);
+  if (!road) return;
+  const subs = [...new Set(ofType('study').filter((r) => !r.sample && r.date >= t.rangeStart && r.date <= t.rangeEnd && STUDY_SUBJECTS.includes(r.subject)).map((r) => r.subject))];
+  const sub = subs.length === 1 ? subs[0] : '수학';
+  if (!confirm(`답변의 '로드맵:' 아래 글을 ${sub} 로드맵에 넣을까요?\n${studyRoadmaps()[sub] ? '지금 있는 로드맵은 새 글로 바뀌어요.' : '📐 수능 탭에서 볼 수 있어요.'}`)) return;
+  await saveRoadmap(sub, road);
+  ui.roadOpen.add(sub);
+  toast(`${sub} 로드맵을 넣었어요.`, 3000);
 }
 
 // 캘린더의 🤖 클로드 피드백 카드를 펼치고 그 자리로 가요
@@ -5271,7 +5335,7 @@ function validRecords(payload, bump = false) {
   if (!payload || payload.app !== 'my-journal' || !Array.isArray(payload.records)) return null;
   // 더 이상 쓰지 않는 종류(경제 공부 메모·투자 기록)와 칸 값은 불러올 때 조용히 버려요.
   // 🧘 운동의 없어진 칸도 같아요: 지우고, 예전 "몸이 어땠나 한 줄"·"달리며 든 생각 한 줄"은 "한 줄"로 옮겨요. (bump: 바뀐 기록은 바꾼 시각도 새로 적어요)
-  return payload.records.filter((r) => r && typeof r.id === 'string' && SCHEMAS[r.type] && typeof r.date === 'string' && !(settings.weekLegacyV1 && r.type === 'config' && r.key === 'weekView') && simplifyKeep(r)).map((r) => simplifyCopy(weekLegacyCopy(violinCopy(stripQuick(workoutLiteCopy(cleanedCopy(r), bump), bump), bump), bump), bump)); // 🗓 예전 값 정리 · 덜어내기 정리에 동의한 뒤에는 불러올 때도 같은 규칙이에요
+  return payload.records.filter((r) => r && typeof r.id === 'string' && SCHEMAS[r.type] && !isLegacyStudy(r) && typeof r.date === 'string' && !(settings.weekLegacyV1 && r.type === 'config' && r.key === 'weekView') && simplifyKeep(r)).map((r) => simplifyCopy(weekLegacyCopy(violinCopy(stripQuick(workoutLiteCopy(cleanedCopy(r), bump), bump), bump), bump), bump)); // 🗓 예전 값 정리 · 덜어내기 정리에 동의한 뒤에는 불러올 때도 같은 규칙이에요
 }
 
 /* ---------------------------------------------------------------------
@@ -5279,13 +5343,16 @@ function validRecords(payload, bump = false) {
       정리하기 직전에 전체 백업 파일을 내려받고, 확인을 눌러야만 진행해요. (정리 대상은 아래 두 목록에 적힌 것뿐이에요)
    --------------------------------------------------------------------- */
 const CLEAN_DROP_TYPES = ['study', 'invest'];                // 통째로 지우는 기록 종류
+// 예전 "경제 공부 메모"도 종류 이름이 study 였어요(주제 topic · 배운 내용 learned · 참고 링크 links). 지금의 📐 공부 기록(study)과 이름이 같아서, 예전 칸이 있는 것만 예전 기록으로 봐요.
+const isLegacyStudy = (r) => !!r && r.type === 'study' && (r.topic !== undefined || r.learned !== undefined || r.links !== undefined);
+const dropType = (r) => (r.type === 'study' ? isLegacyStudy(r) : CLEAN_DROP_TYPES.includes(r.type));
 const CLEAN_FIELDS = {                                        // 종류별로 지우는 칸
   violin: ['did', 'focus'],                                   // 예전 "오늘 한 것" 칩, "집중한 점" 칩
   art: ['kind', 'areas', 'tools', 'tried', 'hard'],           // 예전 종류·연습 영역 칩, 사용한 도구, 새로 시도한 점, 어려웠던 점
   econRoutine: ['tags'],                                      // 경제 루틴의 태그 (금리·인플레이션·환율)
 };
 const dirtyKeys = (r) => (CLEAN_FIELDS[r.type] || []).filter((k) => k in r);
-const needsCleanup = (r) => CLEAN_DROP_TYPES.includes(r.type) || dirtyKeys(r).length > 0;
+const needsCleanup = (r) => dropType(r) || dirtyKeys(r).length > 0;
 function cleanedCopy(r) {
   if (!dirtyKeys(r).length) return r;
   const c = { ...r };
@@ -5321,11 +5388,11 @@ async function runUpdateCleanup() {
   const name = `my-journal-backup-before-update-${todayStr().replace(/-/g, '')}.json`;
   await downloadBackup(name); // 정리하기 직전에 전체 백업
   if (!(await askCleanup(`업데이트 전에 백업을 저장했어요. 예전 투자·경제 메모, 경제 루틴 태그와 일부 칩 값을 정리합니다.\n(백업 파일은 다운로드 폴더에 있어요)`, name))) return; // 취소하면 아무것도 지우지 않고, 다음에 열 때 다시 물어봐요
-  const drop = dirty.filter((r) => CLEAN_DROP_TYPES.includes(r.type)).map((r) => r.id);
+  const drop = dirty.filter(dropType).map((r) => r.id);
   const emptied = (r) => { const c = cleanedCopy(r); return r.type === 'econRoutine' && !Object.values(c.checks || {}).some(Boolean) && !(c.letters || []).length && !c.note; }; // 태그만 남아 있던 빈 루틴 기록
-  const emptyIds = dirty.filter((r) => !CLEAN_DROP_TYPES.includes(r.type) && emptied(r)).map((r) => r.id);
+  const emptyIds = dirty.filter((r) => !dropType(r) && emptied(r)).map((r) => r.id);
   const at = Date.now();
-  const edit = dirty.filter((r) => !CLEAN_DROP_TYPES.includes(r.type) && !emptyIds.includes(r.id)).map((r, i) => ({ ...cleanedCopy(r), updatedAt: Math.max(at + i, (r.updatedAt || 0) + 1) })); // 바뀐 기록은 바꾼 시각도 새로 적어서 ☁ 다른 기기에도 반영돼요
+  const edit = dirty.filter((r) => !dropType(r) && !emptyIds.includes(r.id)).map((r, i) => ({ ...cleanedCopy(r), updatedAt: Math.max(at + i, (r.updatedAt || 0) + 1) })); // 바뀐 기록은 바꾼 시각도 새로 적어서 ☁ 다른 기기에도 반영돼요
   if (edit.length) await Store.putMany(edit);
   if (drop.length) await Store.remove(drop);
   for (const id of emptyIds) await deleteRecord(id); // 빈 루틴 기록은 삭제 표시를 남겨서 ☁ 다른 기기에서도 사라져요

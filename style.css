@@ -933,3 +933,5 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .cur-last { margin: 0 0 6px; }
 .cf-weeks { align-items: center; gap: 6px; flex-wrap: nowrap; }
 .cf-weeks select { flex: 1 1 0; min-width: 0; }
+.study-mark { gap: 2px; flex-wrap: wrap; }
+.subj-chip { display: inline-block; min-width: 1.35em; padding: 0 4px; border-radius: 999px; background: var(--purple-soft); color: var(--purple); font-size: .7rem; font-weight: 700; line-height: 1.5; text-align: center; }
