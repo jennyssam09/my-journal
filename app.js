@@ -57,6 +57,19 @@ const TEXTBOOKS_DEFAULT = ['스즈키 4권'];
 const AMOUNT_FIELD = { key: 'amount', label: '연습량 - 선택', type: 'choice', choices: AMOUNTS, hint: '시간 대신 느낌으로 골라요. 다시 누르면 선택이 풀려요.' };
 const WORKOUT_AMOUNT_FIELD = { ...AMOUNT_FIELD, label: '운동량 - 선택' }; // 운동은 "운동량", 바이올린·그림은 "연습량"이에요
 
+// 📐 수능 과목 (28학년도 수능). 표의 공부 블록·공부 기록·모평은 이 이름 중 하나로 맞춰요 (못 맞추면 적은 그대로)
+const STUDY_SUBJECTS = ['국어', '수학', '영어', '통합사회', '통합과학', '한국사'];
+const STUDY_SHORT = { 국어: '국', 수학: '수', 영어: '영', 통합사회: '사', 통합과학: '과', 한국사: '한' };
+function matchSubject(title) {
+  const t = String(title || '').replace(/\s+/g, '').trim();
+  const hit = STUDY_SUBJECTS.find((x) => t.includes(x));
+  if (hit) return hit;
+  if (t.includes('사회')) return '통합사회';
+  if (t.includes('과학')) return '통합과학';
+  if (/^(화법|독서|문학|언어|작문)/.test(t)) return '국어';
+  if (/^(대수|미적분|확률|확통)/.test(t)) return '수학';
+  return String(title || '').trim();
+}
 const SCHEMAS = {
   // 🧘 운동 기록: 날짜 · 거리 · 운동량 · 한 줄, 이게 전부예요 ("더 적기"는 없어요). 운동은 종류를 나누지 않아요.
   //   예전 기록의 kind(요가·슬로조깅·근력·유산소)는 지우지 않고 그대로 두지만 화면에는 쓰지 않고, 새 기록의 kind 는 '운동'이에요.
@@ -163,6 +176,32 @@ const SCHEMAS = {
       { key: 'ex', label: '이번 주 운동 (붙여 넣은 것)', type: 'text' },
       { key: 'memo', label: '이번 주 메모', type: 'text' },
       { key: 'skip', label: '체크를 풀어 둔 운동', type: 'text' },
+      { key: 'study', label: '이번 주 공부 블록', type: 'text' },
+    ],
+  },
+  // 📐 공부 기록 (🗓 표의 공부 블록 체크로도, 📐 수능 탭의 진도표에서도 만들어요): 날짜 · 과목 · 한 것("어디부터 어디까지" 한 줄) · 비고(글·사진)
+  //   unitIds = 한 것이 커리큘럼 단원과 맞아서 자동으로 체크된 단원, minutes = 블록 길이(표에서 만든 기록) 또는 직접 적은 시간, plan = 표의 블록 번호+1.
+  //   점수·횟수·진행률은 없어요.
+  study: {
+    label: '공부 기록',
+    keep: ['plan', 'minutes', 'unitIds'],
+    fields: [
+      { key: 'date', label: '날짜', type: 'date', required: true },
+      { key: 'subject', label: '과목', type: 'choice', choices: STUDY_SUBJECTS },
+      { key: 'range', label: '한 것 - 선택', type: 'text', flat: true, lastHint: true, placeholder: '예: 7강 12분 ~ 8강 끝 · p.42~p.58' },
+      { key: 'minutes', label: '공부한 시간 (분) - 선택', type: 'number', min: 0, step: 5, noPlan: true, placeholder: '예: 90' },
+      { key: 'note', label: '비고 - 선택', type: 'textarea', rows: 3 },
+      { key: 'images', label: '비고 사진', type: 'images', noun: '사진', max: 6, hint: '풀이·필기 사진을 붙일 수 있어요.' },
+    ],
+  },
+  // 📝 모평·학평: 날짜 · 과목 · 점수(원점수 숫자 하나) · 한 줄. 등급·목표·지난 시험과의 비교는 없어요.
+  mockExam: {
+    label: '모평·학평',
+    fields: [
+      { key: 'date', label: '날짜', type: 'date', required: true },
+      { key: 'subject', label: '과목', type: 'choice', choices: STUDY_SUBJECTS },
+      { key: 'score', label: '점수 (원점수) - 선택', type: 'number', min: 0, step: 1, placeholder: '예: 84' },
+      { key: 'memo', label: '한 줄 - 선택', type: 'text', flat: true, placeholder: '예: 시간이 모자랐다' },
     ],
   },
   // 😴 쉰 날 (쉬는 날도 기록이에요)
@@ -232,6 +271,7 @@ const STAMPS = {
   routine: ['오늘도 한 걸음', '오늘의 경제 한 칸', '가볍게 체크했어요', '흐름 하나 잡았어요', '차곡차곡 쌓여요', '오늘도 체크했어요', '세상 돌아가는 걸 살짝 들여다봤어요', '귀와 눈이 한 뼘 넓어졌어요', '경제 공부 습관이 자라요', '가볍게 접해도 남는 게 있어요', '오늘의 경제 감각 충전', '알아가는 중이에요', '뉴스 한 모금, 잘 마셨어요', '공부할 시간을 내 줬어요', '조금씩 익숙해지고 있어요', '오늘도 세상을 읽었어요', '경제 한 칸을 챙겼어요'],
   english: ['기사 하나 읽었어요', '영어 한 줄 남겼어요', '오늘도 영어 한 칸', '읽고 정리했어요', '영어 감을 켜 뒀어요', '요약까지 해냈어요', '핵심을 잘 짚었어요', '읽는 눈이 즐거웠어요', '내 말로 정리했어요', '문장 사이를 잘 걸었어요', '기사 한 편의 여유', '영어와 오늘도 만났어요', '생각까지 담았어요', '읽은 것을 남겼어요', '잘 읽고 잘 정리했어요', '영어 근육을 살짝 썼어요'],
   art: ['오늘도 그렸어요', '선 하나 더 그었어요', '손이 움직였어요', '그림 한 칸 남겼어요', '종이 위에 오늘이 남았어요', '눈과 손이 만났어요', '연필 소리가 들리는 것 같아요', '색이든 선이든 충분해요', '그리는 시간이 반짝였어요', '오늘의 선을 모아 뒀어요', '손끝에서 풍경이 나왔어요', '그림 앞에 앉은 것만으로 멋져요', '자유롭게 그은 선이 좋아요', '마음을 한 장에 담았어요', '이 그림, 잘 간직해 뒀어요', '그린 만큼 눈이 열려요'],
+  study: ['오늘도 책상에 앉았어요', '한 단원 넘겼어요', '펼친 것만으로 충분해요', '차근차근 쌓이고 있어요', '오늘 몫을 남겼어요', '손이 문제를 기억해요', '한 줄 적어 뒀어요', '조용히 한 칸 채웠어요', '앉은 시간이 남았어요', '오늘도 한 걸음 나아갔어요', '풀어 본 것이 남았어요', '꾸준히 펼쳤어요', '오늘 공부, 잘 챙겼어요', '다음 장이 기다려요', '공부한 날로 남겨 뒀어요', '노트가 한 칸 늘었어요'],
   rest: ['쉬는 것도 기록이에요', '충전하는 날이에요', '푹 쉬었어요', '쉬는 날도 기록이에요', '오늘은 쉬어 가요', '쉼도 연습의 일부예요', '아무것도 안 해도 괜찮아요', '잘 쉬는 것도 재주예요', '내일의 힘을 모으는 날', '숨 고르는 하루', '편안한 하루를 남겼어요', '쉬어야 오래 가요', '오늘은 나를 돌본 날', '느긋하게 보냈어요', '푹 자고 푹 쉬었어요', '쉼표를 찍었어요'],
   feedback: ['피드백, 잘 받아 뒀어요', '잘한 점을 담아 뒀어요', '읽을거리 하나 쌓였어요', '답변을 잘 챙겼어요', '피드백 한 칸 남겼어요', '칭찬을 잘 모셔 뒀어요', '좋은 말이 기록장에 들어왔어요', '다시 읽고 싶은 답변이에요', '잘한 점이 반짝여요', '응원을 받아 왔어요', '받아 적는 마음이 예뻐요', '답변 속 잘한 점, 저장 완료', '돌아볼 거리가 생겼어요', '기록장에 응원이 도착했어요', '귀한 말씀 잘 챙겼어요', '잘 받아 두었어요'],
   night: ['늦은 밤까지 수고했어요', '오늘 하루도 잘 마무리했어요', '밤에도 남겼어요', '이제 쉬어도 돼요', '오늘 하루도 여기까지', '이제 푹 쉬어요', '고요한 밤에 남겼어요', '하루의 끝에 기록장을 열었어요', '밤이 깊어도 챙겼어요', '불을 끄기 전에 남겼어요', '오늘도 정말 애썼어요', '별빛 아래 마무리했어요', '잘 자요, 오늘도 수고했어요', '늦어도 괜찮아요, 남겼으니까요', '하루를 잘 접었어요', '포근한 밤이에요', '오늘 밤은 편히 쉬어요'],
@@ -241,7 +281,7 @@ const STAMP_FRESH_DAYS = 10; // 클로드가 써 준 "도장 문구"는 받은 �
 const STAMP_ICONS = {
   general: ['🌱', '📌', '🍀', '☕', '✨', '📓'],
   practice: ['🎻', '🎼', '🎶'], lesson: ['🎓', '📝', '🎼'], workout: ['🧘', '🌿', '🍃', '☀️', '🏃'],
-  routine: ['🎧', '📮', '📰', '✅', '💡'], english: ['📰', '✍', '🔤', '☕'], art: ['🎨', '✏️', '🖌️'], rest: ['😴'],
+  routine: ['🎧', '📮', '📰', '✅', '💡'], english: ['📰', '✍', '🔤', '☕'], art: ['🎨', '✏️', '🖌️'], study: ['📐', '📖', '✏️', '📝', '📚'], rest: ['😴'],
   night: ['🌙', '⭐', '🌃', '🛌'],
 };
 const NIGHT_START = 22; // 밤 10시부터
@@ -347,6 +387,8 @@ function weekLabel(sunday) {
   const f = (d) => { const x = parseDate(d); return `${x.getMonth() + 1}/${x.getDate()}`; };
   return `${thu.getMonth() + 1}월 ${Math.ceil(thu.getDate() / 7)}주 (${f(sunday)}~${f(addDays(sunday, 6))})`;
 }
+// "10월 4주": 주의 짧은 이름 (달·몇째 주는 weekLabel 과 같은 규칙)
+const weekShort = (sunday) => weekLabel(sunday).replace(/\s*\(.*\)$/, '');
 const dayLabel = (s) => {
   const d = parseDate(s);
   const y = d.getFullYear() === new Date().getFullYear() ? '' : `${d.getFullYear()}년 `;
@@ -1853,10 +1895,144 @@ const planEx = (p) => {
   for (let d = 0; d < 7; d += 1) { const v = e[d]; if (v && typeof v === 'object' && Array.isArray(v.blocks)) out[d] = { blocks: v.blocks.map(normExBlock).filter(Boolean) }; }
   return out;
 };
-const planUsed = (p) => { const t = planTutor(p); return !!(t.add.length || t.del.length || Object.keys(t.edit).length || Object.keys(planEx(p)).length || planMemo(p)); }; // "이번 주만" 바꾼 것이 있나
+const planUsed = (p) => { const t = planTutor(p); return !!(t.add.length || t.del.length || Object.keys(t.edit).length || Object.keys(planEx(p)).length || planStudy(p).length || planMemo(p)); }; // "이번 주만" 바꾼 것이 있나
 
 // 그 주 그 요일의 운동 블록: 📥 로 붙여 넣은 것만 (없으면 빈 목록)
 const exBlocksOf = (sun, dow) => (planEx(weekPlanOf(sun))[dow] || { blocks: [] }).blocks;
+
+/* ---- 공부 블록 (그 주 기록 weekPlan.study: 📆 캘린더 가져오기 · 📥/✎ 글의 "수학 14:00~16:00 공부" · 직접 더한 것) ---- */
+// { id, d(0=일~6=토), subject, s, e, memo }
+function normStudyBlock(b) {
+  if (!b || typeof b !== 'object') return null;
+  const d = Number(b.d); const subject = String(b.subject || '').trim();
+  if (!Number.isInteger(d) || d < 0 || d > 6 || !subject) return null;
+  return { id: String(b.id || `${d}|${subject}|${hhmm(b.s)}`), d, subject: subject.slice(0, 30), s: hhmm(b.s), e: hhmm(b.e), memo: String(b.memo || '').trim().slice(0, 200) };
+}
+const planStudy = (p) => (p && Array.isArray(p.study) ? p.study.map(normStudyBlock).filter(Boolean) : []);
+const studyBlocksOf = (sun, dow) => planStudy(weekPlanOf(sun)).filter((b) => b.d === dow).sort((a, b) => (timeMin(a.s) === null ? 1e9 : timeMin(a.s)) - (timeMin(b.s) === null ? 1e9 : timeMin(b.s)));
+const blockMinutes = (b) => { const s = timeMin(b.s); const e = timeMin(b.e); return s !== null && e !== null && e > s ? e - s : ''; };
+// 공부 블록 ↔ 공부 기록: 표에서 만든 기록은 plan(블록 번호+1)으로 그 블록에 붙어요. 체크를 풀었지만 고친 기록이 남아 있으면 skip 에 "요일:s블록번호"가 적혀요
+const studyRecFor = (date, idx) => ofType('study').find((r) => !r.sample && r.date === date && r.plan === idx + 1);
+const studyChecked = (date, dow, idx, plan) => !!studyRecFor(date, idx) && !planSkip(plan).includes(`${dow}:s${idx}`);
+/* ---- 📐 커리큘럼 (설정 값 'studyCurriculum' = [{ id, subject, name, kind('강의'|'교재'|'기출'), from, to(학습 기간: 그 주 일요일 날짜), units: [{ id, name, done, doneAt }] }]) ---- */
+const STUDY_KINDS = ['강의', '교재', '기출'];
+const weekKeyOrEmpty = (v) => { const k = weekKey(String(v || '')); return k || ''; };
+function studyCurriculum() {
+  const v = getConfig('studyCurriculum', []);
+  return (Array.isArray(v) ? v : []).filter((c) => c && typeof c === 'object' && c.id).map((c) => ({
+    id: String(c.id), subject: String(c.subject || ''), name: String(c.name || '').trim(), kind: STUDY_KINDS.includes(c.kind) ? c.kind : '강의',
+    from: weekKeyOrEmpty(c.from), to: weekKeyOrEmpty(c.to),
+    units: (Array.isArray(c.units) ? c.units : []).filter((u) => u && u.id).map((u) => ({ id: String(u.id), name: String(u.name || '').trim(), done: !!u.done, doneAt: u.doneAt ? String(u.doneAt) : '' })),
+  }));
+}
+const saveCurriculum = (list) => setConfig('studyCurriculum', list);
+async function setUnitsDone(ids, doneAt) {
+  if (!ids.length) return;
+  const list = studyCurriculum(); let changed = false;
+  list.forEach((c) => c.units.forEach((u) => { if (ids.includes(u.id) && !u.done) { u.done = true; u.doneAt = doneAt; changed = true; } }));
+  if (changed) await saveCurriculum(list);
+}
+// "한 것" 글 → 커리큘럼 단원: 단원 이름이 글에 그대로 나오고(앞이 숫자가 아닐 때), 두 단원 사이에 ~ 가 있으면 그 사이 단원 모두. "3~5강"처럼 번호만 이어 쓴 것도 읽어요.
+//   같은 과목에 교재가 여럿이면: 글에 교재 이름이 나오는 것 → 가장 최근에 그 과목 공부 기록에서 쓴 교재 → 맞는 단원이 있는 첫 교재
+const RANGE_SEP = /[~～∼–-]/;
+function matchUnitsIn(cur, text) {
+  const t = String(text || '');
+  const hits = []; // { pos, end, idx }
+  const taken = new Set();
+  cur.units.map((u, idx) => ({ u, idx })).filter((x) => x.u.name).sort((a, b) => b.u.name.length - a.u.name.length).forEach(({ u, idx }) => {
+    let from = 0;
+    for (;;) {
+      const pos = t.indexOf(u.name, from);
+      if (pos < 0) break;
+      from = pos + 1;
+      const end = pos + u.name.length;
+      if (pos > 0 && /[0-9]/.test(t[pos - 1]) && /[0-9]/.test(u.name[0])) continue; // 17강 안의 7강은 아니에요
+      if (end < t.length && /[0-9]/.test(t[end]) && /[0-9]/.test(u.name[u.name.length - 1])) continue;
+      if ([...taken].some((k) => k >= pos && k < end)) continue;
+      for (let k = pos; k < end; k += 1) taken.add(k);
+      hits.push({ pos, end, idx });
+    }
+  });
+  hits.sort((a, b) => a.pos - b.pos);
+  const set = new Set(hits.map((h) => h.idx));
+  for (let i = 0; i + 1 < hits.length; i += 1) { // 두 단원 사이에 ~ 가 있으면 그 사이를 모두
+    if (RANGE_SEP.test(t.slice(hits[i].end, hits[i + 1].pos))) { const [a, b] = [hits[i].idx, hits[i + 1].idx].sort((x, y) => x - y); for (let k = a; k <= b; k += 1) set.add(k); }
+  }
+  const m = t.match(/(\d+)\s*[~～∼–-]\s*(\d+)\s*([^\d\s~～∼–-]{1,3})/); // "3~5강"
+  if (m) { const a = Number(m[1]); const b = Number(m[2]); if (b >= a && b - a < 200) for (let n = a; n <= b; n += 1) { const i = cur.units.findIndex((u) => u.name === `${n}${m[3]}`); if (i >= 0) set.add(i); } }
+  return [...set].sort((x, y) => x - y).map((i) => cur.units[i].id);
+}
+function unitsFromRange(subject, text, exceptRecId = '') {
+  if (!hasValue(text)) return [];
+  const curs = studyCurriculum().filter((c) => c.subject === subject && c.units.length);
+  const named = curs.filter((c) => c.name && String(text).includes(c.name));
+  const lastRec = ofType('study').filter((r) => !r.sample && r.id !== exceptRecId && r.subject === subject && Array.isArray(r.unitIds) && r.unitIds.length).sort(byNewest)[0];
+  const recent = lastRec ? curs.find((c) => c.units.some((u) => lastRec.unitIds.includes(u.id))) : null;
+  const order = [...named, ...(recent ? [recent] : []), ...curs];
+  for (const c of order) { const ids = matchUnitsIn(c, text); if (ids.length) return ids; }
+  return [];
+}
+// "지난번": 가장 최근 공부 기록의 "한 것". 범위(~)가 있으면 끝쪽만 "~8강 끝"으로 줄여 보여요.
+const lastEnd = (text) => { const t = oneLine(text); const i = Math.max(...[...t].map((ch, k) => (RANGE_SEP.test(ch) ? k : -1))); return i >= 0 && i < t.length - 1 ? `~${t.slice(i + 1).trim()}` : t; };
+const studyByNewest = (list) => [...list].sort(byNewest);
+function lastRangeOfCur(cur) {
+  const ids = new Set(cur.units.map((u) => u.id));
+  const r = studyByNewest(ofType('study').filter((x) => !x.sample && x.subject === cur.subject && hasValue(x.range) && ((x.unitIds || []).some((id) => ids.has(id)) || (cur.name && String(x.range).includes(cur.name)))))[0];
+  return r ? lastEnd(r.range) : '';
+}
+function lastRangeOfSubject(subject, beforeRec = null) {
+  const r = studyByNewest(ofType('study').filter((x) => !x.sample && x.subject === subject && hasValue(x.range) && (!beforeRec || (x.id !== beforeRec.id && ((x.date || '') < beforeRec.date || ((x.date || '') === beforeRec.date && (x.createdAt || 0) < (beforeRec.createdAt || Infinity)))))))[0];
+  return r ? lastEnd(r.range) : '';
+}
+function lastNoteHTML(subject, rec) {
+  const t = subject ? lastRangeOfSubject(subject, rec && rec.id ? rec : null) : '';
+  return `<div class="last-note" id="lastNote"${t ? '' : ' hidden'}>${t ? `지난번: ${esc(t)}` : ''}</div>`;
+}
+function syncLastNote() {
+  const box = $('#lastNote'); const form = $('#recForm');
+  if (!box || !form) return;
+  const id = form.dataset.id; const t = lastRangeOfSubject(form.elements.subject ? form.elements.subject.value : '', id ? records.find((r) => r.id === id) : null);
+  box.textContent = t ? `지난번: ${t}` : ''; box.hidden = !t;
+}
+const studyTouched = (r) => hasValue(r.range) || hasValue(r.note) || (Array.isArray(r.images) && r.images.length > 0) || (Array.isArray(r.unitIds) && r.unitIds.length > 0);
+
+/* ---- 📐 이번 주 할 단원: 교재마다 몫 = 남은 단원 ÷ 남은 주(학습 기간 끝 주까지, 올림), 남은 단원 중 앞에서부터 ---- */
+const weeksBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / (7 * 864e5));
+function plannedUnits(cur, sun) {
+  const thisWeek = weekStartOf(todayStr());
+  const inWeek = (u, w) => u.done && !!u.doneAt && weekStartOf(u.doneAt) === w;
+  if (sun < thisWeek) return cur.units.filter((u) => inWeek(u, sun)); // 지난 주: 그 주에 한 것
+  let rest = cur.units.filter((u) => !u.done || inWeek(u, thisWeek)); // 이번 주 몫은 이번 주 처음 남아 있던 것(이번 주에 한 것 포함)에서
+  let out = [];
+  for (let i = 0, w = thisWeek; i <= weeksBetween(thisWeek, sun); i += 1, w = addDays(w, 7)) {
+    if (cur.from && w < cur.from) { out = []; continue; } // 아직 시작 전인 주
+    const left = cur.to && cur.to >= w ? weeksBetween(w, cur.to) + 1 : 0; // 기간이 지났거나 없으면 0 → 앞에서 1개
+    const q = left ? Math.ceil(rest.length / left) : Math.min(1, rest.length);
+    out = rest.slice(0, q); rest = rest.slice(q);
+  }
+  return out;
+}
+async function toggleUnit(cid, uid) {
+  const list = studyCurriculum();
+  const u = (list.find((c) => c.id === cid) || { units: [] }).units.find((x) => x.id === uid);
+  if (!u) return;
+  u.done = !u.done; u.doneAt = u.done ? todayStr() : '';
+  await saveCurriculum(list); render();
+}
+const unitBtnHTML = (c, u) => `<button type="button" class="unit-btn${u.done ? ' done' : ''}" data-act="unitToggle" data-cid="${esc(c.id)}" data-uid="${esc(u.id)}" aria-pressed="${u.done}" title="${u.done ? '끝냄 · 누르면 되돌려요' : '누르면 끝냈다고 표시해요'}">${esc(u.name)}</button>`;
+function weekUnitsHTML(sun) {
+  const rows = studyCurriculum().map((c) => ({ c, u: plannedUnits(c, sun) })).filter((x) => x.u.length);
+  if (!rows.length) return ''; // 예정 단원이 없는 주는 칸 자체를 숨겨요
+  return `<section class="wkp-units"><h3>📐 이번 주 할 단원</h3>${rows.map(({ c, u }) => {
+    const last = lastRangeOfCur(c);
+    return `<div class="cur-item"><div class="cur-head"><span class="cur-name">${esc(c.name)}</span>${last ? `<span class="meta">지난번: ${esc(last)}</span>` : ''}</div><div class="unit-chips">${u.map((x) => unitBtnHTML(c, x)).join('')}</div></div>`;
+  }).join('')}</section>`;
+}
+// 공부 시간: "공부 2시간 30분" (그 주 공부 블록의 길이 합계 · 한 달은 그 달 공부 기록의 시간 합계, 값만)
+const durText = (min) => { const h = Math.floor(min / 60); const m = min % 60; return [h ? `${h}시간` : '', m ? `${m}분` : ''].filter(Boolean).join(' '); };
+const studyTimeText = (min) => (min > 0 ? `공부 ${durText(min)}` : '');
+const studyWeekMin = (sun) => { let n = 0; for (let d = 0; d < 7; d += 1) studyBlocksOf(sun, d).forEach((b) => { n += Number(blockMinutes(b)) || 0; }); return n; };
+const studyMonthMin = (ym) => ofType('study').filter((r) => !r.sample && String(r.date || '').startsWith(ym)).reduce((n, r) => n + (Number(r.minutes) || 0), 0);
 
 // 그 주에 보이는 과외 블록: 기본 시간표 − 이번 주만 지운 것 + 이번 주만 바꾼 것 + 이번 주만 더한 것
 function tutorBlocksOf(sun) {
@@ -1905,7 +2081,7 @@ function updateWeekPlan(sun, patch) {
     const id = `wp-${sun}`;
     const old = weekPlanOf(sun);
     const { sample, ...keep } = old || {};
-    const rec = { ...keep, id, type: 'weekPlan', date: sun, createdAt: old ? old.createdAt : Date.now(), weight: planWeight(old) || '', tutor: planTutor(old), skip: [...planSkip(old)], ex: planEx(old), memo: planMemo(old) };
+    const rec = { ...keep, id, type: 'weekPlan', date: sun, createdAt: old ? old.createdAt : Date.now(), weight: planWeight(old) || '', tutor: planTutor(old), skip: [...planSkip(old)], ex: planEx(old), study: planStudy(old), memo: planMemo(old) };
     patch(rec);
     rec.skip = [...new Set(rec.skip)].sort((a, b) => String(a).localeCompare(String(b)));
     const t = rec.tutor;
@@ -1921,7 +2097,9 @@ function updateWeekPlan(sun, patch) {
     if (!exKeys.length) delete rec.ex;
     rec.memo = String(rec.memo || '').trim();
     if (!rec.memo) delete rec.memo;
-    const empty = !rec.weight && !rec.skip.length && !used && !exKeys.length && !rec.memo;
+    rec.study = (rec.study || []).map(normStudyBlock).filter(Boolean);
+    if (!rec.study.length) delete rec.study;
+    const empty = !rec.weight && !rec.skip.length && !used && !exKeys.length && !rec.memo && !rec.study;
     rec.updatedAt = Date.now();
     if (empty) { if (old) await deleteRecord(old.id); return null; }
     return (await saveRecord(rec)) ? rec : undefined; // null: 비어서 지움, undefined: 저장 못 함
@@ -2015,13 +2193,13 @@ async function applyTutorBase(fromWeek, op) {
    앞뒤 설명 글과 ``` 표시는 무시하고, [시간표] 표시가 있으면 마지막 [시간표] 아래를, 없으면 "일:"~"토:" 줄을 찾아 읽어요.
    --------------------------------------------------------------------- */
 const TUTOR_MODES = ['온라인', '대면'];
-const SCHED_KINDS = [...TUTOR_MODES, ...EX_WORDS];
+const SCHED_KINDS = [...TUTOR_MODES, ...EX_WORDS, '공부'];
 const DAY_LINE_RE = /^[\s>*•\-`]*\**\s*([일월화수목금토])\s*(?:요일)?\s*\**\s*[:：]\s*(.*?)[\s`]*$/;
 const MEMO_LINE_RE = /^[\s>*•\-`]*\**\s*메모\s*\**\s*[:：]\s*(.*?)[\s`]*$/;
 const REST_RE = /^(휴식|쉼|없음|없어요|-|—)$/;
 const T_RE = '(\\d{1,2}:\\d{2})';
 const BLOCK_TIME_RE = new RegExp(`^(.+?)\\s+${T_RE}(?:\\s*[~∼～–-]\\s*${T_RE})?(?:\\s+(${SCHED_KINDS.join('|')}))?(?:\\s*\\(?\\s*(선택)\\s*\\)?)?$`);
-const BLOCK_NOTIME_RE = new RegExp(`^(.+?)\\s+(${EX_WORDS.join('|')})(?:\\s*\\(?\\s*(선택)\\s*\\)?)?$`);
+const BLOCK_NOTIME_RE = new RegExp(`^(.+?)\\s+(${[...EX_WORDS, '공부'].join('|')})(?:\\s*\\(?\\s*(선택)\\s*\\)?)?$`);
 // 블록 하나 → { tutor } 또는 { ex } 또는 { why }
 function parseBlockText(part, d) {
   const t = part.trim();
@@ -2032,6 +2210,7 @@ function parseBlockText(part, d) {
   else return { why: `"${t}" 은 읽지 못했어요 (이름 9:00~11:00 온라인 · 이름 13:00~13:30 운동)` };
   if (e && timeMin(e) <= timeMin(s)) return { why: `"${t}" 은 끝나는 시간이 시작보다 늦어야 해요` };
   name = name.trim().replace(/\s+/g, ' ');
+  if (kind === '공부') return { study: { id: newId(), d, subject: matchSubject(name).slice(0, 30), s, e, memo: '' } }; // 과목 이름으로 맞춰 읽어요
   if (EX_WORDS.includes(kind)) return { ex: { name: name.slice(0, 300), kind: EX_KIND, optional, s, e } }; // 근력·유산소·요가·운동 모두 운동 하나
   return { tutor: { id: newId(), d, name: name.slice(0, 30), s, e, m: kind === '대면' ? '대면' : '온라인' } }; // 종류가 없으면 온라인 과외
 }
@@ -2046,7 +2225,7 @@ function parseSchedule(text) {
     if (end >= 0) lines = lines.slice(0, end);
     inBlock = true;
   }
-  const days = Array.from({ length: 7 }, () => ({ present: false, tutors: [], ex: [] }));
+  const days = Array.from({ length: 7 }, () => ({ present: false, tutors: [], ex: [], study: [] }));
   const bad = []; const dup = []; let memo = '';
   lines.forEach((raw) => {
     const line = raw.trim();
@@ -2057,12 +2236,12 @@ function parseSchedule(text) {
     if (!dm) { if (inBlock) bad.push({ line, why: '요일(일~토) 한 글자와 ":"로 시작해야 해요' }); return; }
     const d = DOW.indexOf(dm[1]);
     const rest = dm[2].replace(/\*\*/g, '').trim();
-    const found = { present: true, tutors: [], ex: [] }; let why = '';
+    const found = { present: true, tutors: [], ex: [], study: [] }; let why = '';
     if (rest && !REST_RE.test(rest)) {
       for (const part of rest.split(/\s*\/\s*/)) {
         const r = parseBlockText(part, d);
         if (r.why) { why = r.why; break; }
-        if (r.tutor) found.tutors.push(r.tutor); else found.ex.push(r.ex);
+        if (r.tutor) found.tutors.push(r.tutor); else if (r.study) found.study.push(r.study); else found.ex.push(r.ex);
       }
     }
     if (why) { bad.push({ line, why }); return; }
@@ -2071,15 +2250,15 @@ function parseSchedule(text) {
   });
   return { days, memo, bad, dup, any: days.some((x) => x.present) };
 }
-const parsedCounts = (ps) => ({ tutors: ps.days.reduce((n, d) => n + d.tutors.length, 0), ex: ps.days.reduce((n, d) => n + d.ex.length, 0) });
+const parsedCounts = (ps) => ({ tutors: ps.days.reduce((n, d) => n + d.tutors.length, 0), ex: ps.days.reduce((n, d) => n + d.ex.length, 0), study: ps.days.reduce((n, d) => n + d.study.length, 0) });
 
 /* ---- 📥 클로드 시간표 붙여 넣기 → 지금 보는 주에만 반영 ---- */
 // 붙여 넣은 글을 그 주에 얹은 "결과" (적힌 요일은 붙여 넣은 것, 안 적힌 요일은 지금 모습 그대로)
 function weekModel(sun, ps) {
   const curT = tutorBlocksOf(sun);
   const days = Array.from({ length: 7 }, (_, d) => {
-    if (ps && ps.days[d].present) return { tutors: ps.days[d].tutors, ex: ps.days[d].ex };
-    return { tutors: curT.filter((b) => b.d === d), ex: exBlocksOf(sun, d) };
+    if (ps && ps.days[d].present) return { tutors: ps.days[d].tutors, ex: ps.days[d].ex, study: ps.days[d].study || [] };
+    return { tutors: curT.filter((b) => b.d === d), ex: exBlocksOf(sun, d), study: studyBlocksOf(sun, d) };
   });
   return { sun, days, memo: ps ? ps.memo : planMemo(weekPlanOf(sun)) };
 }
@@ -2089,7 +2268,7 @@ function aiPreviewHTML(sun, text) {
   const c = parsedCounts(ps);
   const missing = ps.days.map((d, i) => (d.present ? '' : DOW[i])).filter(Boolean);
   return `${ps.bad.map((b) => `<p class="wkp-bad">읽지 못한 줄: ${esc(b.line)}<br><span>${esc(b.why)} — 이 줄은 건너뛰어요</span></p>`).join('')}
-    ${ps.any ? `<p class="meta">읽은 요일 ${7 - missing.length}개 · 과외 ${c.tutors}개 · 운동 ${c.ex}개${ps.memo ? ' · 메모 있음' : ''}${ps.dup.length ? ` · ${ps.dup.map((d) => DOW[d]).join('·')}요일은 여러 번 나와서 마지막 줄을 읽었어요` : ''}</p>
+    ${ps.any ? `<p class="meta">읽은 요일 ${7 - missing.length}개 · 과외 ${c.tutors}개 · 운동 ${c.ex}개${c.study ? ` · 공부 ${c.study}개` : ''}${ps.memo ? ' · 메모 있음' : ''}${ps.dup.length ? ` · ${ps.dup.map((d) => DOW[d]).join('·')}요일은 여러 번 나와서 마지막 줄을 읽었어요` : ''}</p>
     ${missing.length && missing.length < 7 ? `<p class="meta">적지 않은 요일(${esc(missing.join('·'))})은 지금 모습 그대로 둬요.</p>` : ''}
     <div class="wkt-prevwrap">${weekTableHTML(weekModel(sun, ps), { preview: true })}</div>` : '<p class="meta">읽을 수 있는 요일 줄이 아직 없어요. ("월: 이름 9:00~11:00 온라인 / …" 모양이에요)</p>'}`;
 }
@@ -2098,10 +2277,10 @@ const sched1 = (s) => String(s || '').replace(/\s*\/\s*/g, '·'); // 블록 이�
 function scheduleText(sun) {
   const m = weekModel(sun, null);
   const rows = m.days.map((day, d) => {
-    const all = [...day.tutors.map((b) => ({ t: 1, b })), ...day.ex.map((b) => ({ t: 0, b }))]
+    const all = [...day.tutors.map((b) => ({ t: 1, b })), ...day.ex.map((b) => ({ t: 0, b })), ...(day.study || []).map((b) => ({ t: 2, b }))]
       .map((x, i) => ({ ...x, i, k: timeMin(x.b.s) === null ? 1e9 : timeMin(x.b.s) }))
       .sort((a, b) => a.k - b.k || a.i - b.i);
-    return `${DOW[d]}: ${all.length ? all.map((x) => blockText({ ...x.b, name: sched1(x.b.name) })).join(' / ') : '휴식'}`;
+    return `${DOW[d]}: ${all.length ? all.map((x) => (x.t === 2 ? `${sched1(x.b.subject)} ${blockTime(x.b)} 공부`.replace(/\s+/g, ' ') : blockText({ ...x.b, name: sched1(x.b.name) }))).join(' / ') : '휴식'}`;
   });
   return `[시간표]\n${rows.join('\n')}${m.memo ? `\n메모: ${m.memo}` : ''}`;
 }
@@ -2116,6 +2295,26 @@ async function remapWorkoutPlans(sun, maps) {
   for (const key of Object.keys(maps)) {
     const date = addDays(sun, Number(key)); const map = maps[key];
     const recs = ofType('workout').filter((r) => r.date === date && typeof r.plan === 'number').slice();
+    for (const r of recs) {
+      const k = r.plan - 1; const j = map[k];
+      if (j === k) continue;
+      const next = { ...r, updatedAt: Date.now() };
+      if (j >= 0) next.plan = j + 1; else delete next.plan;
+      await saveRecord(next);
+    }
+  }
+}
+// 공부 블록 번호 맞추기 (표에서의 번호 = 그 요일을 시간순으로 센 번호)
+const studySort = (list) => list.slice().sort((a, b) => (timeMin(a.s) === null ? 1e9 : timeMin(a.s)) - (timeMin(b.s) === null ? 1e9 : timeMin(b.s)));
+function studyMap(oldB, newB, byId) {
+  const used = new Set();
+  return oldB.map((o) => { const j = newB.findIndex((n, k) => !used.has(k) && (byId ? n.id === o.id : n.subject === o.subject && n.s === o.s)); if (j >= 0) used.add(j); return j; });
+}
+const remapSkipStudy = (skip, d, map) => skip.flatMap((t) => { const m = typeof t === 'string' && new RegExp(`^${d}:s(\\d+)$`).exec(t); if (!m) return [t]; const j = map[Number(m[1])]; return j >= 0 ? [`${d}:s${j}`] : []; });
+async function remapStudyPlans(sun, maps) {
+  for (const key of Object.keys(maps)) {
+    const date = addDays(sun, Number(key)); const map = maps[key];
+    const recs = ofType('study').filter((r) => r.date === date && typeof r.plan === 'number').slice();
     for (const r of recs) {
       const k = r.plan - 1; const j = map[k];
       if (j === k) continue;
@@ -2160,10 +2359,18 @@ async function applyWeekAi() {
   const base = baseBlocksFor(sun);
   const maps = {}; // 운동 체크가 새 블록을 따라가게 (이름·시작 시간이 같으면 같은 블록)
   ps.days.forEach((day, i) => { if (day.present) maps[i] = exBlockMap(exBlocksOf(sun, i), day.ex.map(normExBlock).filter(Boolean)); });
+  const smaps = {}; const newStudy = {};
+  ps.days.forEach((day, i) => { // 공부 블록: 과목·시작이 같으면 같은 블록 (메모·체크가 따라가요)
+    if (!day.present) return;
+    const old = studyBlocksOf(sun, i);
+    const nb = studySort(day.study.map((b) => { const o = old.find((x) => x.subject === b.subject && x.s === b.s); return normStudyBlock({ ...b, memo: b.memo || (o ? o.memo : '') }); }).filter(Boolean));
+    newStudy[i] = nb; smaps[i] = studyMap(old, nb, false);
+  });
   await updateWeekPlan(sun, (p) => {
     ps.days.forEach((day, i) => {
       if (!day.present) return;
-      p.skip = remapSkip(p.skip, i, maps[i]);
+      p.skip = remapSkipStudy(remapSkip(p.skip, i, maps[i]), i, smaps[i]);
+      p.study = (p.study || []).filter((b) => b.d !== i).concat(newStudy[i]);
       base.filter((b) => b.d === i).forEach((b) => { if (!p.tutor.del.includes(b.id)) p.tutor.del.push(b.id); delete p.tutor.edit[b.id]; }); // 그 요일의 기본 과외는 이 주에서 빼고
       p.tutor.add = p.tutor.add.filter((b) => b.d !== i).concat(day.tutors);                                                                    // 붙여 넣은 과외로 채워요
       p.ex[i] = { blocks: day.ex };
@@ -2171,6 +2378,7 @@ async function applyWeekAi() {
     p.memo = ps.memo;
   });
   await remapWorkoutPlans(sun, maps);
+  await remapStudyPlans(sun, smaps);
   // 운동이 사라진 요일의 체크는 풀려요. 이미 만들어진 운동 기록은 지우지 않아요.
   const lost = ps.days.map((day, i) => (day.present && beforeChecked[i] && !day.ex.length ? DOW[i] : '')).filter(Boolean);
   if (dlg.open) closeDlg();
@@ -2183,16 +2391,18 @@ function blockFormHTML() {
   const w = ui.wkEdit; const sun = weekStartOf(w.date); const d = parseDate(w.date).getDay();
   const tutor = w.kind === 'tutor';
   const b = w.block || {};
-  const title = `${w.mode === 'add' ? '＋' : '✎'} ${DOW[d]}요일 ${tutor ? '과외' : '운동'} 블록 ${w.mode === 'add' ? '더하기' : '고치기'}`;
-  const done = !tutor && w.mode === 'edit' ? dayChecks(w.date, d, exBlocksOf(sun, d), weekPlanOf(sun))[w.i] : false;
+  const study = w.kind === 'study';
+  const title = `${w.mode === 'add' ? '＋' : '✎'} ${DOW[d]}요일 ${tutor ? '과외' : study ? '공부' : '운동'} 블록 ${w.mode === 'add' ? '더하기' : '고치기'}`;
+  const done = w.kind === 'ex' && w.mode === 'edit' ? dayChecks(w.date, d, exBlocksOf(sun, d), weekPlanOf(sun))[w.i] : false;
   return `<h2>${title}</h2>
     <p class="meta" style="margin-top:0">${esc(weekLabel(sun))}에만 바뀌어요.${tutor ? ' 기본 시간표는 그대로예요.' : ''}</p>
-    ${!tutor && w.mode === 'edit' ? `<div class="field"><label class="wb-opt wb-done"><input id="wb_done" type="checkbox"${done ? ' checked' : ''}${w.date > todayStr() ? ' disabled' : ''}> ✓ 했어요${w.date > todayStr() ? ' <span class="meta">(아직 안 온 날은 체크할 수 없어요)</span>' : ''}</label></div>` : ''}
+    ${w.kind === 'ex' && w.mode === 'edit' ? `<div class="field"><label class="wb-opt wb-done"><input id="wb_done" type="checkbox"${done ? ' checked' : ''}${w.date > todayStr() ? ' disabled' : ''}> ✓ 했어요${w.date > todayStr() ? ' <span class="meta">(아직 안 온 날은 체크할 수 없어요)</span>' : ''}</label></div>` : ''}
     <form id="wkBlockForm" novalidate>
-      <div class="field"><label for="wb_name">이름</label><input id="wb_name" type="text" maxlength="${tutor ? 30 : 300}" autocomplete="off" value="${esc(b.name || '')}"></div>
+      <div class="field"><label for="wb_name">${study ? '과목' : '이름'}</label><input id="wb_name" type="text" maxlength="${tutor || study ? 30 : 300}" autocomplete="off"${study ? ' list="wb_subjects"' : ''} value="${esc(study ? b.subject || '' : b.name || '')}">${study ? `<datalist id="wb_subjects">${STUDY_SUBJECTS.map((x) => `<option value="${x}">`).join('')}</datalist>` : ''}</div>
       <div class="field"><label for="wb_s">시작${tutor ? '' : ' - 선택'}</label><input id="wb_s" type="time" value="${t24(b.s)}"></div>
       <div class="field"><label for="wb_e">끝 - 선택</label><input id="wb_e" type="time" value="${t24(b.e)}"></div>
       ${tutor ? `<div class="field"><label for="wb_m">방식</label><select id="wb_m"><option value="온라인"${b.m === '대면' ? '' : ' selected'}>온라인</option><option value="대면"${b.m === '대면' ? ' selected' : ''}>대면</option></select></div>`
+    : study ? `<div class="field"><label for="wb_memo">메모 - 선택</label><input id="wb_memo" type="text" maxlength="200" autocomplete="off" value="${esc(b.memo || '')}" placeholder="예: 시발점 대수 이어서"></div>`
     : `<div class="field"><label class="wb-opt"><input id="wb_opt" type="checkbox"${b.optional ? ' checked' : ''}> 선택 운동 (점선으로 보여요)</label></div>`}
       <p class="error" id="wbErr" role="alert"></p>
       <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button>${w.mode === 'edit' ? `<button type="button" class="btn danger" data-act="wkBlockDel">${tutor ? '이 주만 지우기' : '지우기'}</button>` : ''}<button type="submit" class="btn">저장</button></div>
@@ -2213,6 +2423,12 @@ function openExEdit(date, i) {
   ui.wkEdit = { kind: 'ex', mode: 'edit', date, i, block: b, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
 }
+function openStudyBlockEdit(date, i) {
+  const b = studyBlocksOf(weekStartOf(date), parseDate(date).getDay())[i];
+  if (!b) return;
+  ui.wkEdit = { kind: 'study', mode: 'edit', date, id: b.id, i, block: b, fromDay: fromDayDlg() };
+  openDlg(blockFormHTML());
+}
 function openBlockAdd(kind, date) {
   ui.wkEdit = { kind, mode: 'add', date, block: {}, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
@@ -2223,7 +2439,7 @@ async function saveWeekBlock() {
   const name = $('#wb_name').value.trim().replace(/\s+/g, ' ');
   const s = hhmm($('#wb_s').value); const e = hhmm($('#wb_e').value);
   const tutor = w.kind === 'tutor';
-  if (!name) return fail('이름을 적어 주세요.');
+  if (!name) return fail(w.kind === 'study' ? '과목을 적어 주세요.' : '이름을 적어 주세요.');
   if (tutor && !s) return fail('시작 시간을 적어 주세요.');
   if (e && !s) return fail('끝 시간을 적으려면 시작 시간도 필요해요.');
   if (e && timeMin(e) <= timeMin(s)) return fail('끝나는 시간은 시작보다 늦어야 해요.');
@@ -2239,6 +2455,15 @@ async function saveWeekBlock() {
       BLOCK_KEYS.forEach((k) => { if (nv[k] !== base[k]) patch[k] = nv[k]; });
       if (Object.keys(patch).length) p.tutor.edit[w.id] = patch; else delete p.tutor.edit[w.id];
     });
+  } else if (w.kind === 'study') {
+    const old = studyBlocksOf(sun, dow);
+    const nbk = normStudyBlock({ id: w.mode === 'add' ? newId() : w.id, d: dow, subject: matchSubject(name), s, e, memo: $('#wb_memo').value });
+    await updateWeekPlan(sun, (p) => { p.study = (p.study || []).filter((x) => x.id !== nbk.id).concat(nbk); });
+    if (w.mode === 'edit') { // 시간이 바뀌어 순서가 달라져도 체크가 그 블록을 따라가게
+      const map = studyMap(old, studyBlocksOf(sun, dow), true);
+      await updateWeekPlan(sun, (p) => { p.skip = remapSkipStudy(p.skip, dow, map); });
+      await remapStudyPlans(sun, { [dow]: map });
+    }
   } else {
     const nb = { name: name.slice(0, 300), kind: (w.block && w.block.kind) || EX_KIND, optional: !!$('#wb_opt').checked, s, e };
     await updateWeekPlan(sun, (p) => {
@@ -2261,6 +2486,13 @@ async function deleteWeekBlock() {
       if (p.tutor.add.some((x) => x.id === w.id)) p.tutor.add = p.tutor.add.filter((x) => x.id !== w.id);
       else { if (!p.tutor.del.includes(w.id)) p.tutor.del.push(w.id); delete p.tutor.edit[w.id]; }
     });
+  } else if (w.kind === 'study') {
+    const old = studyBlocksOf(sun, dow);
+    const map = old.map((_, k) => (k === w.i ? -1 : k > w.i ? k - 1 : k));
+    const hit = studyRecFor(w.date, w.i);
+    if (hit && !studyTouched(hit)) await deleteRecord(hit.id); // 표에서 만들고 아직 안 적은 공부 기록만 같이 지워요
+    await updateWeekPlan(sun, (p) => { p.skip = remapSkipStudy(p.skip, dow, map); p.study = (p.study || []).filter((x) => x.id !== w.id); });
+    await remapStudyPlans(sun, { [dow]: map });
   } else {
     const old = exBlocksOf(sun, dow);
     const map = old.map((_, k) => (k === w.i ? -1 : k > w.i ? k - 1 : k));
@@ -2274,12 +2506,135 @@ async function deleteWeekBlock() {
   if (w.fromDay) openDay(w.date); else closeDlg();
   toast('이 주에서 지웠어요.', 2500);
 }
+/* ---- 공부 블록 체크 ↔ 공부 기록 ---- */
+// 표에서 공부 블록을 누르면 "했어요"(공부 기록이 하나 생겨요) 체크가 켜지고 작은 창(과목·진도·다음에 할 것·비고)이 떠요. 전부 비워도 저장돼요. 다시 누르면 해제돼요.
+let studyChecking = false;
+async function setStudyCheck(date, idx) {
+  if (studyChecking) return;
+  studyChecking = true;
+  try {
+    const dow = parseDate(date).getDay(); const sun = weekStartOf(date);
+    const blk = studyBlocksOf(sun, dow)[idx];
+    if (!blk || date > todayStr()) return; // 없는 블록·아직 안 온 날은 체크할 수 없어요
+    const plan = weekPlanOf(sun); const tok = `${dow}:s${idx}`;
+    const has = studyRecFor(date, idx);
+    if (has && studyChecked(date, dow, idx, plan)) { // 해제: 아직 아무것도 안 적은 기록은 지우고, 적어 둔 기록은 남겨 둬요
+      if (!studyTouched(has)) { await deleteRecord(has.id); toast('체크를 풀고, 그때 만든 공부 기록도 지웠어요.', 2500); } else { await updateWeekPlan(sun, (p) => { p.skip.push(tok); }); toast('적어 둔 공부 기록은 남겨 둘게요. 캘린더나 진도표에서 고치거나 지울 수 있어요.', 3500); }
+      render(); refreshDay();
+      return;
+    }
+    if (planSkip(plan).includes(tok)) await updateWeekPlan(sun, (p) => { p.skip = p.skip.filter((x) => x !== tok); });
+    if (has) { render(); openForm('study', has); return; }
+    const rec = { id: newId(), type: 'study', date, subject: blk.subject, minutes: blockMinutes(blk), range: '', note: blk.memo || '', images: [], unitIds: [], plan: idx + 1, createdAt: Date.now(), updatedAt: Date.now() };
+    assignStamp(rec);
+    if (!(await saveRecord(rec))) { render(); return; }
+    render(); refreshDay();
+    afterNewRecord(rec); // 💮 도장 토스트
+    openForm('study', rec);
+  } finally { studyChecking = false; }
+}
+
+/* ---- 📆 구글 캘린더에서 가져오기 (읽기만): 이름이 "과외"인 캘린더 → 과외 블록, "공부"인 캘린더 → 공부 블록 (이름은 ⚙ 설정에서 바꿔요) ---- */
+const calNames = () => { const v = getConfig('calendarNames', null) || {}; return { tutor: String(v.tutor || '').trim() || '과외', study: String(v.study || '').trim() || '공부' }; };
+// 일정의 시각 → { date: 'YYYY-MM-DD', t: 'H:MM' } (Asia/Seoul)
+function seoulParts(iso) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, t: hhmm(`${Number(p.hour)}:${p.minute}`) };
+}
+// 구글 캘린더 일정들 → 블록. 그 주(일~토) 밖 · 종일 · 취소된 일정은 빼요
+function calBlocksFrom(sun, tutorEvents, studyEvents) {
+  const sat = addDays(sun, 6);
+  const parts = (ev) => {
+    if (!ev || ev.status === 'cancelled' || !ev.start || !ev.start.dateTime || !ev.end || !ev.end.dateTime) return null;
+    const a = seoulParts(ev.start.dateTime); const b = seoulParts(ev.end.dateTime);
+    if (a.date < sun || a.date > sat) return null;
+    let e = b.date === a.date ? b.t : '23:59';
+    if (timeMin(e) <= timeMin(a.t)) e = '';
+    return { d: parseDate(a.date).getDay(), s: a.t, e };
+  };
+  const tutors = []; const study = [];
+  (tutorEvents || []).forEach((ev) => {
+    const q = parts(ev); const name = String(ev.summary || '').trim().slice(0, 30);
+    if (!q || !name) return;
+    const face = /대면/.test(`${ev.summary || ''} ${ev.description || ''} ${ev.location || ''}`);
+    tutors.push({ id: newId(), d: q.d, name, s: q.s, e: q.e, m: face ? '대면' : '온라인' });
+  });
+  (studyEvents || []).forEach((ev) => {
+    const q = parts(ev); const title = String(ev.summary || '').trim();
+    if (!q || !title) return;
+    const memo = String(ev.description || '').replace(/<[^>]*>/g, ' ').split(/\r?\n/).map((x) => x.trim()).find(Boolean) || '';
+    study.push({ id: newId(), d: q.d, subject: matchSubject(title).slice(0, 30), s: q.s, e: q.e, memo: memo.slice(0, 200) });
+  });
+  return { tutors, study };
+}
+const calSig = { t: (b) => `${b.d}|${b.name}|${b.s}|${b.e}|${b.m}`, y: (b) => `${b.d}|${b.subject}|${b.s}|${b.e}` };
+function calDiffLines(sun, nb, use) {
+  const line = (b, kind) => `${DOW[b.d]} ${kind === 't' ? `${b.name} ${blockTime(b)} ${b.m}` : `${b.subject} ${blockTime(b)} 공부`}`.replace(/\s+/g, ' ');
+  const out = [];
+  const diff = (cur, now, kind) => {
+    const sig = calSig[kind]; const curS = cur.map(sig); const nowS = now.map(sig);
+    now.forEach((b) => { if (!curS.includes(sig(b))) out.push({ sign: '＋', text: line(b, kind) }); });
+    cur.forEach((b) => { if (!nowS.includes(sig(b))) out.push({ sign: '－', text: line(b, kind) }); });
+  };
+  if (use.tutor) diff(tutorBlocksOf(sun), nb.tutors, 't');
+  if (use.study) diff(planStudy(weekPlanOf(sun)), nb.study, 'y');
+  return out;
+}
+function calImportHTML() {
+  const c = ui.calImp; const r = c.res;
+  const warn = r.missing.map((n) => `<p class="wkp-bad">"${esc(n)}" 이름의 캘린더를 찾지 못했어요<br><span>⚙ 설정에서 캘린더 이름을 바꿀 수 있어요 — 그 블록은 그대로 둬요</span></p>`).join('');
+  const lines = c.lines.length ? `<ul class="wkp-diff">${c.lines.map((x) => `<li><b>${x.sign}</b> ${esc(x.text)}</li>`).join('')}</ul>` : '<p class="meta">지금 표와 달라지는 것이 없어요.</p>';
+  return `<h2>📆 ${esc(weekLabel(c.sun))} 가져오기</h2>
+    <p class="meta" style="margin-top:0">구글 캘린더에서 읽기만 해요(일정은 바뀌지 않아요). 반영하면 이 주의 과외·공부 블록이 캘린더 내용으로 바뀌고, 운동 블록과 체크는 그대로예요.</p>
+    ${warn}
+    <p class="meta"><b>과외 ${c.use.tutor ? c.nb.tutors.length : '—'}개 · 공부 ${c.use.study ? c.nb.study.length : '—'}개</b>를 읽었어요${c.use.tutor || c.use.study ? '. 지금 표에서 달라지는 것:' : '.'}</p>
+    ${c.use.tutor || c.use.study ? lines : ''}
+    <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button><button type="button" class="btn" data-act="calImportApply"${(c.use.tutor || c.use.study) && c.lines.length ? '' : ' disabled'}>이 주에 반영</button></div>`;
+}
+async function openCalImport() {
+  const sun = ui.weekStart || weekStartOf(todayStr());
+  ui.calImp = { sun, res: null };
+  openDlg(`<h2>📆 ${esc(weekLabel(sun))} 가져오기</h2><p class="meta" role="status">구글 캘린더에서 불러오는 중이에요… (처음에는 캘린더 읽기 허용 창이 한 번 떠요)</p><div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`);
+  const fail = (m) => { if (ui.calImp && ui.calImp.sun === sun && dlg.open) openDlg(`<h2>📆 캘린더에서 가져오기</h2><p class="error">${esc(m)}</p><div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`); };
+  if (!window.Sync || !Sync.calendarWeek) { fail('구글 로그인 도구(sync.js)를 불러오지 못했어요.'); return; }
+  try {
+    const names = calNames();
+    const r = await Sync.calendarWeek(sun, names);
+    const use = { tutor: !r.missing.includes(names.tutor), study: !r.missing.includes(names.study) };
+    const nb = calBlocksFrom(sun, r.events.tutor, r.events.study);
+    ui.calImp = { sun, use, nb, missing: r.missing, lines: calDiffLines(sun, nb, use), res: { missing: r.missing } };
+    if (dlg.open) openDlg(calImportHTML());
+  } catch (e) { fail(Sync.friendly(e)); }
+}
+async function applyCalImport() {
+  const c = ui.calImp; if (!c || !c.nb) return;
+  const sun = c.sun;
+  const base = baseBlocksFor(sun);
+  const smaps = {}; const newStudy = [];
+  if (c.use.study) {
+    for (let d = 0; d < 7; d += 1) {
+      const old = studyBlocksOf(sun, d);
+      const nb = studySort(c.nb.study.filter((b) => b.d === d).map((b) => { const o = old.find((x) => x.subject === b.subject && x.s === b.s); return normStudyBlock({ ...b, memo: b.memo || (o ? o.memo : '') }); }).filter(Boolean));
+      smaps[d] = studyMap(old, nb, false); newStudy.push(...nb);
+    }
+  }
+  await updateWeekPlan(sun, (p) => {
+    if (c.use.tutor) p.tutor = { add: c.nb.tutors.map(normBlock).filter(Boolean), edit: {}, del: base.map((b) => b.id) };
+    if (c.use.study) { p.study = newStudy; for (let d = 0; d < 7; d += 1) p.skip = remapSkipStudy(p.skip, d, smaps[d]); }
+  });
+  if (c.use.study) await remapStudyPlans(sun, smaps);
+  ui.calImp = null;
+  if (dlg.open) closeDlg();
+  render();
+  toast('이 주에 반영했어요.', 2500);
+}
+
 // ↺ 이번 주를 기본 시간표로: 이 주만 바꾼 과외·📥 로 붙여 넣은 운동·메모를 지워요 (체크는 그대로, 저장돼 있는 몸무게도 그대로)
 async function resetWeekToBase() {
   const sun = ui.weekStart || weekStartOf(todayStr());
   if (!planUsed(weekPlanOf(sun))) return;
-  if (!confirm(`${weekLabel(sun)}을 기본 시간표로 되돌릴까요?\n이 주에만 바꿔 둔 과외·붙여 넣은 운동·메모가 지워져요. (운동 체크는 그대로예요)`)) return;
-  await updateWeekPlan(sun, (p) => { p.tutor = { add: [], edit: {}, del: [] }; p.ex = {}; p.memo = ''; });
+  if (!confirm(`${weekLabel(sun)}을 기본 시간표로 되돌릴까요?\n이 주에만 바꿔 둔 과외·붙여 넣은 운동·공부 블록·메모가 지워져요. (운동 체크는 그대로예요)`)) return;
+  await updateWeekPlan(sun, (p) => { p.tutor = { add: [], edit: {}, del: [] }; p.ex = {}; p.study = []; p.memo = ''; });
   render();
   toast('이 주를 기본 시간표로 되돌렸어요.', 2500);
 }
@@ -2351,6 +2706,7 @@ function weekTableHTML(model, opts = {}) {
   const items = days.map((day, d) => [
     ...day.tutors.filter((b) => timeMin(b.s) !== null).map((b) => ({ d, kind: 't', b, s: timeMin(b.s), e: timeMin(b.e) !== null ? timeMin(b.e) : timeMin(b.s) + WKT_TUTOR_MIN })),
     ...day.ex.map((b, i) => ({ d, kind: 'x', b, i, s: timeMin(b.s), e: timeMin(b.e) !== null ? timeMin(b.e) : (timeMin(b.s) !== null ? timeMin(b.s) + WKT_EX_MIN : null) })).filter((x) => x.s !== null),
+    ...(day.study || []).map((b, i) => ({ d, kind: 'y', b, i, s: timeMin(b.s), e: timeMin(b.e) !== null ? timeMin(b.e) : (timeMin(b.s) !== null ? timeMin(b.s) + WKT_TUTOR_MIN : null) })).filter((x) => x.s !== null),
   ]);
   const flat = items.flat();
   let h0 = 9; let h1 = 22;
@@ -2370,29 +2726,35 @@ function weekTableHTML(model, opts = {}) {
     flush();
     return sorted;
   };
-  const cls = (x) => (x.kind === 't' ? (x.b.m === '대면' ? 't-face' : 't-online') : `ex${x.b.optional ? ' opt' : ''}`); // 운동은 종류와 상관없이 같은 색(파랑), 선택 운동은 점선
+  const cls = (x) => (x.kind === 't' ? (x.b.m === '대면' ? 't-face' : 't-online') : x.kind === 'y' ? 'study' : `ex${x.b.optional ? ' opt' : ''}`); // 운동은 종류와 상관없이 같은 색(파랑), 선택 운동은 점선
   const cols = days.map((day, d) => {
     const date = addDays(sun, d);
     const blocks = lanes(items[d]).map((x) => {
-      const top = ((x.s - h0 * 60) / 60) * WKT_PX; const hgt = Math.max(x.kind === 'x' ? 28 : 16, ((x.e - x.s) / 60) * WKT_PX - 1); // 운동 블록은 눌러야 해서 너무 낮아지지 않게
-      const name = x.kind === 'x' ? (x.b.name.split('(')[0].trim() || x.b.name) : x.b.name;
-      const time = x.kind === 't' ? blockTime(x.b) : blockTime(x.b);
-      const on = x.kind === 'x' && checks[`${d}:${x.i}`];
-      const label = `${DOW[d]}요일 ${x.b.name} ${time}${x.kind === 't' ? ` ${x.b.m}` : `${x.b.optional ? ' 선택' : ''} 운동`}${on ? ' (했어요)' : ''}`;
+      const top = ((x.s - h0 * 60) / 60) * WKT_PX; const hgt = Math.max(x.kind === 'x' || x.kind === 'y' ? 28 : 16, ((x.e - x.s) / 60) * WKT_PX - 1); // 운동 블록은 눌러야 해서 너무 낮아지지 않게
+      const nm0 = x.kind === 'y' ? x.b.subject : x.b.name;
+      const name = x.kind === 'x' ? (x.b.name.split('(')[0].trim() || x.b.name) : nm0;
+      const time = blockTime(x.b);
+      const on = x.kind === 'x' ? checks[`${d}:${x.i}`] : x.kind === 'y' ? checks[`${d}:s${x.i}`] : false;
+      const label = `${DOW[d]}요일 ${nm0} ${time}${x.kind === 't' ? ` ${x.b.m}` : x.kind === 'y' ? ' 공부' : `${x.b.optional ? ' 선택' : ''} 운동`}${on ? ' (했어요)' : ''}`;
       const style = `top:${top}px;height:${hgt}px;left:calc(${x.lane} * 100% / ${x.n});width:calc(100% / ${x.n} - 2px)`;
       const inner = `<span class="wkt-n">${esc(name)}</span>${hgt >= 36 ? `<span class="wkt-t">${esc(time).replace('~', '~<wbr>')}</span>` : ''}${on ? '<span class="wkt-ck" aria-hidden="true">✓</span>' : ''}`;
       const c = `wkt-b ${cls(x)}${hgt < 36 ? ' short' : hgt < 60 ? ' mid' : ''}`;
       if (!opts.preview && x.kind === 't') return `<button type="button" class="${c}" style="${style}" data-act="wkTutor" data-date="${date}" data-id="${esc(x.b.id)}" title="${esc(label)} · 눌러서 고치기" aria-label="${esc(`${label}, 눌러서 고치기`)}">${inner}</button>`; // 과외 블록: 눌러서 고치기
+      if (!opts.preview && x.kind === 'y') return `<button type="button" class="${c}${on ? ' on' : ''}" style="${style}" data-act="wkStudy" data-date="${date}" data-i="${x.i}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(label)}" aria-label="${esc(label)}">${inner}</button>`; // 공부 블록: 눌러서 했어요 체크
       return !opts.preview && x.kind === 'x' // 운동 블록: 눌러서 했어요 체크 (아직 안 온 날은 눌러도 안 돼요) · 길게 누르거나 ✎ 로 고치기
         ? `<button type="button" class="${c}${on ? ' on' : ''}" style="${style}" data-act="wkEx" data-date="${date}" data-i="${x.i}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(label)}" aria-label="${esc(label)}">${inner}</button>`
         : `<div class="${c}" style="${style}" title="${esc(label)}">${inner}</div>`;
     }).join('');
-    const empty = !day.tutors.length && !day.ex.length;
+    const empty = !day.tutors.length && !day.ex.length && !(day.study || []).length;
     return `<div class="wkt-col${date === today ? ' today' : ''}" data-d="${d}" style="height:${H}px">${blocks}${empty ? '<span class="wkt-rest">휴식</span>' : ''}</div>`;
   }).join('');
-  const untimed = days.map((day, d) => [...day.ex.map((b, i) => ({ ...b, ex: true, i })).filter((b) => timeMin(b.s) === null), ...day.tutors.filter((b) => timeMin(b.s) === null)]);
+  const untimed = days.map((day, d) => [...day.ex.map((b, i) => ({ ...b, ex: true, i })).filter((b) => timeMin(b.s) === null), ...(day.study || []).map((b, i) => ({ ...b, name: b.subject, study: true, i })).filter((b) => timeMin(b.s) === null), ...day.tutors.filter((b) => timeMin(b.s) === null)]);
   const chip = (b, d) => { // 시간이 없는 블록: 작은 이름표 (운동은 눌러서 했어요 체크)
     const nm = esc((b.name || '').split('(')[0].trim() || b.name);
+    if (b.study) {
+      const on = checks[`${d}:s${b.i}`]; const label = `${DOW[d]}요일 ${b.name} 공부${on ? ' (했어요)' : ''}`;
+      return opts.preview ? `<span class="wkt-chip study">${nm}</span>` : `<button type="button" class="wkt-chip study${on ? ' on' : ''}" data-act="wkStudy" data-date="${addDays(sun, d)}" data-i="${b.i}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(label)}" aria-label="${esc(label)}">${on ? '✓ ' : ''}${nm}</button>`;
+    }
     if (!b.ex) return opts.preview ? `<span class="wkt-chip ${b.m === '대면' ? 't-face' : 't-online'}">${nm}</span>` : `<button type="button" class="wkt-chip ${b.m === '대면' ? 't-face' : 't-online'}" data-act="wkTutor" data-date="${addDays(sun, d)}" data-id="${esc(b.id)}" title="눌러서 고치기">${nm}</button>`;
     const on = checks[`${d}:${b.i}`]; const date = addDays(sun, d);
     const label = `${DOW[d]}요일 ${b.name}${b.optional ? ' 선택' : ''} 운동${on ? ' (했어요)' : ''}`;
@@ -2405,7 +2767,7 @@ function weekTableHTML(model, opts = {}) {
     const date = addDays(sun, d); const x = parseDate(date); const inner = `<span>${DOW[d]}</span><small>${x.getMonth() + 1}/${x.getDate()}</small>`; const cls = `wkt-head d${d}${date === today ? ' today' : ''}`;
     return opts.preview ? `<div class="${cls}">${inner}</div>` : `<button type="button" class="${cls}" data-act="calDay" data-date="${date}" title="눌러서 이 날의 기록 보기" aria-label="${esc(`${DOW[d]}요일 ${x.getMonth() + 1}월 ${x.getDate()}일 기록 보기`)}">${inner}</button>`;
   }).join('');
-  const legend = opts.preview ? '' : `<div class="wkt-legend" aria-label="범례"><span class="wkt-lg"><i class="wkt-sw t-online"></i>온라인 과외</span><span class="wkt-lg"><i class="wkt-sw t-face"></i>대면 과외</span><span class="wkt-lg"><i class="wkt-sw ex"></i>운동</span></div>`;
+  const legend = opts.preview ? '' : `<div class="wkt-legend" aria-label="범례"><span class="wkt-lg"><i class="wkt-sw t-online"></i>온라인 과외</span><span class="wkt-lg"><i class="wkt-sw t-face"></i>대면 과외</span><span class="wkt-lg"><i class="wkt-sw ex"></i>운동</span>${days.some((x) => (x.study || []).length) ? '<span class="wkt-lg"><i class="wkt-sw study"></i>공부</span>' : ''}</div>`;
   const axis = Array.from({ length: h1 - h0 + 1 }, (_, i) => `<span style="top:${i * WKT_PX}px">${h0 + i}</span>`).join('');
   return `<div class="wkt-scroll"><div class="wkt" style="--wkt-h:${WKT_PX}px">
     <div class="wkt-corner"></div>${heads}
@@ -2455,11 +2817,14 @@ function renderWeek() {
   ui.weekStart = sun === thisWeek ? null : sun;
   const plan = weekPlanOf(sun);
   const checks = {};
-  for (let d = 0; d < 7; d += 1) dayChecks(addDays(sun, d), d, exBlocksOf(sun, d), plan).forEach((on, i) => { if (on) checks[`${d}:${i}`] = true; });
+  for (let d = 0; d < 7; d += 1) {
+    dayChecks(addDays(sun, d), d, exBlocksOf(sun, d), plan).forEach((on, i) => { if (on) checks[`${d}:${i}`] = true; });
+    studyBlocksOf(sun, d).forEach((_, i) => { if (studyChecked(addDays(sun, d), d, i, plan)) checks[`${d}:s${i}`] = true; });
+  }
   view.innerHTML = `
     <h2 class="page-title">이번 주</h2>
     <p class="page-sub">과외 일정과 이번 주 운동을 한눈에 봐요. 운동은 📥로 붙여 넣은 것만 표에 보이고, 했다고 블록을 한 번만 눌러요. 과외 블록을 누르면 이 주만 고칠 수 있고, 운동 블록은 길게 누르거나 ✎ 로 고쳐요. 그날 기록을 보거나 블록을 더하려면 요일 머리(일·월…)를 눌러요. 점수나 비교는 없어요.</p>
-    <p class="meta wkp-hours">${esc(tutorTotalText(tutorTotals(sun)))}</p>
+    <div class="wkp-hours-row"><p class="meta wkp-hours">${esc(tutorTotalText(tutorTotals(sun)))}</p>${studyWeekMin(sun) ? `<p class="meta wkp-study-hours">${esc(studyTimeText(studyWeekMin(sun)))}</p>` : ''}</div>
     <div class="wkp-head">
       ${weekBtnHTML(sun === thisWeek)}
       <button type="button" class="btn ghost small" data-act="wkShift" data-d="-1" aria-label="지난 주">◀</button>
@@ -2469,8 +2834,10 @@ function renderWeek() {
     <div class="wkp-bar">
       <button type="button" class="btn ghost small" data-act="wkAi">📥 클로드 시간표 붙여 넣기</button>
       <button type="button" class="btn ghost small" data-act="wkText">✎ 시간표 글 고치기</button>
+      <button type="button" class="btn ghost small" data-act="wkCal">📆 캘린더에서 가져오기</button>
     </div>
     ${weekTableHTML(weekModel(sun, null), { checks })}
+    ${weekUnitsHTML(sun)}
     <div class="row wkp-tools"><button type="button" class="btn ghost small" data-act="wkPaste">📋 기본 시간표 붙여 넣기</button>${planUsed(plan) ? '<button type="button" class="btn ghost small" data-act="wkReset">↺ 이번 주를 기본 시간표로</button>' : ''}</div>`;
 }
 
@@ -2485,6 +2852,8 @@ const CAL_CATS = [
   { id: 'routine', chip: 'routine', icon: '✅', label: '경제 루틴', iconOnly: true, test: (r) => r.type === 'econRoutine' },
   { id: 'english', chip: 'english', icon: '📰', label: '영어', iconOnly: true, test: (r) => r.type === 'englishArticle' },
   { id: 'podcast', chip: 'english', icon: '🎧', label: '영어 팟캐스트', iconOnly: true, stampArea: 'english', test: (r) => r.type === 'englishPodcast' }, // 📰 영어 칩에 함께 묶여요. 도장 문구는 영어 것을 써요
+  { id: 'study', chip: 'study', icon: '📐', label: '공부', test: (r) => r.type === 'study' },
+  { id: 'mock', chip: 'study', icon: '📝', label: '모평·학평', stampArea: 'study', test: (r) => r.type === 'mockExam' },
   { id: 'art', chip: 'art', icon: '🎨', label: '그림', test: (r) => r.type === 'art' },
   { id: 'rest', chip: 'rest', icon: '😴', label: '쉼', test: (r) => r.type === 'rest' },
 ];
@@ -2509,6 +2878,8 @@ function calTitle(r) {
     case 'econRoutine': return '경제 루틴';
     case 'englishArticle': return domainOf(r.link) || '영어 기사';
     case 'englishPodcast': return '영어 팟캐스트';
+    case 'study': return r.subject || '공부';
+    case 'mockExam': return r.subject ? `${r.subject} 모평` : '모평·학평';
     case 'rest': return '쉼';
     default: return r.topic || artKindOf(r);
   }
@@ -2799,12 +3170,28 @@ function routineDayCard(r) {
   </div>`;
 }
 
+// 날짜 창 안의 공부 기록·모평 카드
+function studyCard(r) {
+  const imgs = Array.isArray(r.images) ? r.images : [];
+  return `<div class="card" data-rid="${esc(r.id)}">
+    <div class="item-head"><div><span class="tag study-tag">📐 ${esc(r.subject || '공부')}</span>${hasValue(r.range) ? ` <span class="pre">${esc(r.range)}</span>` : ''}</div>${actionButtons('study', r.id)}</div>
+    ${hasValue(r.note) ? textBlock('비고', r.note) : ''}
+    ${imgs.length ? `<div class="study-imgs">${imgs.map((src) => `<img class="study-img" src="${esc(src)}" alt="" loading="lazy">`).join('')}</div>` : ''}
+  </div>`;
+}
+function mockCard(r) {
+  return `<div class="card" data-rid="${esc(r.id)}">
+    <div class="item-head"><div><span class="tag study-tag">📝 ${esc(r.subject || '모평·학평')}</span>${r.score !== undefined && r.score !== '' ? ` <b>${esc(r.score)}점</b>` : ''}</div>${actionButtons('mockExam', r.id)}</div>
+    ${hasValue(r.memo) ? `<div class="pre">${esc(r.memo)}</div>` : ''}
+  </div>`;
+}
+
 // 날짜를 누르면 그날의 기록을 한 창에 모아 보여줘요
 //   오늘과 지난 날짜에는 ✅ 경제 루틴 체크 목록(뉴스레터 칩 포함)이 나와서 그 자리에서 켜고 끌 수 있어요. 미래 날짜에는 없어요.
 function openDay(date) {
   ui.dayOpen = date;
   const list = records.filter((r) => r.date === date && catOf(r)).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const card = { workout: workoutCard, violin: violinCard, econRoutine: routineDayCard, englishArticle: englishCard, englishPodcast: () => '', art: artDayCard, rest: restCard }; // 팟캐스트는 아래 체크 칸에서 보여요
+  const card = { workout: workoutCard, violin: violinCard, econRoutine: routineDayCard, englishArticle: englishCard, englishPodcast: () => '', study: studyCard, mockExam: mockCard, art: artDayCard, rest: restCard }; // 팟캐스트는 아래 체크 칸에서 보여요
   const open = date <= todayStr();
   const rt = routineOn(date);
   const cards = list.filter((r) => r.type !== 'econRoutine' || !open).map((r) => card[r.type](r));
@@ -2814,7 +3201,7 @@ function openDay(date) {
       ${rt && hasValue(rt.note) ? textBlock('오늘 한 줄', rt.note) : ''}
     </section>` : '';
   const podcastSec = open ? podcastDaySecHTML(date) : '';
-  const add = [['workout', '운동'], ['violin', '바이올린'], ['englishArticle', '영어 기사']]
+  const add = [['workout', '운동'], ['violin', '바이올린'], ['englishArticle', '영어 기사'], ['study', '공부']]
     .map(([t, l]) => `<button type="button" class="btn ghost small" data-act="addOn" data-type="${t}" data-date="${date}">＋ ${l}</button>`).join('')
     + restButtonHTML(date);
   openDlg(`
@@ -2822,8 +3209,10 @@ function openDay(date) {
     <div class="day-list">${cards.join('')}${!list.length ? '<div class="empty">기록이 없어요.</div>' : ''}${routineSec}${podcastSec}</div>
     <div class="label" style="margin:14px 0 6px">이 날짜에 기록 더하기</div>
     <div class="row actions-row">${add}</div>
+    ${ui.tab === 'week' && studyBlocksOf(weekStartOf(date), parseDate(date).getDay()).length ? `<div class="label" style="margin:14px 0 6px">이 요일의 공부 블록 <span class="meta">(눌러서 고치기 · 이 주에만)</span></div>
+    <div class="wkp-dayst">${studyBlocksOf(weekStartOf(date), parseDate(date).getDay()).map((b, i) => `<button type="button" class="wkp-dayst-row" data-act="wkStudyEdit" data-date="${date}" data-i="${i}"><span class="wkp-dayst-n">${esc(b.subject)}</span><span class="meta">${esc(blockTime(b))}</span></button>`).join('')}</div>` : ''}
     ${ui.tab === 'week' ? `    <div class="label" style="margin:14px 0 6px">이 요일 시간표에 블록 더하기 <span class="meta">(이 주에만)</span></div>
-    <div class="row actions-row"><button type="button" class="btn ghost small" data-act="wkAddTutor" data-date="${date}">＋ 이 요일에 과외 블록</button><button type="button" class="btn ghost small" data-act="wkAddEx" data-date="${date}">＋ 이 요일에 운동 블록</button></div>` : ''}
+    <div class="row actions-row"><button type="button" class="btn ghost small" data-act="wkAddTutor" data-date="${date}">＋ 이 요일에 과외 블록</button><button type="button" class="btn ghost small" data-act="wkAddEx" data-date="${date}">＋ 이 요일에 운동 블록</button><button type="button" class="btn ghost small" data-act="wkAddStudy" data-date="${date}">＋ 이 요일에 공부 블록</button></div>` : ''}
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`, true);
 }
 
@@ -2928,8 +3317,8 @@ function rememberPraise(text) { const bag = stampBagRead(); stampBagWrite({ ...b
 const PRAISE_BAD = /[0-9０-９]|보다|지난|목표|점수|대비|비교|평균|연속|해\s?보세요|하세요|하면 좋|하길|필요|서둘|빨리|어서|꼭 |늘었|늘려|줄었|줄여|더 해|다음엔|다음에는|다음 /;
 const praiseOk = (t) => { const x = String(t || '').trim(); return x.length >= 2 && x.length <= 60 && !PRAISE_BAD.test(x); };
 
-const STAMP_AREA_LABEL = { practice: '바이올린', lesson: '바이올린', workout: '운동', routine: '경제', english: '영어', art: '그림' };
-const STAMP_AREA_SCOPE = { practice: 'violin', lesson: 'violin', workout: 'all', routine: 'econ', english: 'english', art: 'drawing' }; // 운동은 클로드 피드백 범위가 없어서 🌈 전체로 받은 잘한 점만 써요
+const STAMP_AREA_LABEL = { practice: '바이올린', lesson: '바이올린', workout: '운동', routine: '경제', english: '영어', art: '그림', study: '공부' };
+const STAMP_AREA_SCOPE = { practice: 'violin', lesson: 'violin', workout: 'all', routine: 'econ', english: 'english', art: 'drawing', study: 'study' }; // 운동은 클로드 피드백 범위가 없어서 🌈 전체로 받은 잘한 점만 써요
 // 그 기록에 맞춘 문장들 (조건이 맞는 것만)
 function contextPraise(rec) {
   const out = [];
@@ -2970,6 +3359,11 @@ function contextPraise(rec) {
     else if (icons[0] === '🎧') out.push('귀로 경제를 들었어요');
     else if (icons[0] === '📮') out.push('뉴스레터를 읽었어요');
     if (hasValue(rec.note)) out.push('오늘의 한 줄까지 남겼어요');
+  } else if (area === 'study') {
+    out.push('앉아서 펼친 게 시작이에요');
+    if (rec.type === 'mockExam') out.push('시험을 치르고 남겼어요');
+    else if (hasValue(rec.range)) out.push('어디까지 했는지 적어 뒀어요');
+    if (rec.type === 'study' && Array.isArray(rec.images) && rec.images.length) out.push('필기도 사진으로 남겼어요');
   } else if (area === 'art') {
     const k = artKindOf(rec);
     if (k === '크로키') out.push('손이 먼저 움직였어요');
@@ -2981,7 +3375,7 @@ function contextPraise(rec) {
   if (area !== 'rest') {
     const labels = [];
     const add = (id) => { const l = STAMP_AREA_LABEL[id]; if (l && !labels.includes(l)) labels.push(l); };
-    ['practice', 'lesson', 'workout', 'routine', 'english', 'art'].forEach((id) => { if (id === area || others.some((r) => r.date === rec.date && stampAreaOf(catOf(r)) === id)) add(id); });
+    ['practice', 'lesson', 'workout', 'routine', 'english', 'study', 'art'].forEach((id) => { if (id === area || others.some((r) => r.date === rec.date && stampAreaOf(catOf(r)) === id)) add(id); });
     if (labels.length >= 2) out.push(`${rec.date === today ? '오늘' : '그날'}은 ${labels.slice(0, 3).map((l) => `${l}도`).join(' ')} 챙겼어요`);
   }
   // 밤 · 이른 아침 (지금 시각)
@@ -3049,6 +3443,8 @@ function savedLine(rec) {
     case 'econRoutine': return routineIcons(rec).join(' '); // 체크한 항목 (🎧 📮)
     case 'englishArticle': return domainOf(rec.link);
     case 'englishPodcast': return join('🎧', rec.title ? oneLine(rec.title) : '');
+    case 'study': return join(rec.subject, rec.range ? oneLine(rec.range) : '');
+    case 'mockExam': return join(rec.subject, rec.score !== undefined && rec.score !== '' ? `${rec.score}점` : '');
     case 'art': return join(artKindOf(rec), amount);
     default: return '';
   }
@@ -4423,7 +4819,7 @@ function fieldHTML(f, value, type) {
     if (f.aux === 'other') input += lineAuxHTML('o', value); // "그 밖에 연습한 곡" 줄 아래의 템포 · 🎙 녹음 붙이기
   }
   const labelFor = f.type === 'choice' || f.type === 'chips' ? '' : ` for="${id}"`;
-  return `<div class="field${f.small ? ' field-small' : ''}" data-only="${esc(f.only || '')}" data-key="${esc(f.key)}"${f.aux === 'other' ? ' data-line-zone="o"' : ''}><label${labelFor}>${esc(f.label)}${req}</label>${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ''}</div>`;
+  return `<div class="field${f.small ? ' field-small' : ''}" data-only="${esc(f.only || '')}" data-key="${esc(f.key)}"${f.aux === 'other' ? ' data-line-zone="o"' : ''}><label${labelFor}>${esc(f.label)}${req}</label>${f.lastHint ? lastNoteHTML(ui.studySubject || '', ui.formRec) : ''}${input}${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ''}</div>`;
 }
 
 // 새벽 DAY_STARTS_AT시 전에 입력 창을 열었을 때만, 날짜 칸 아래에 어느 날 기록으로 남는지 작게 알려줘요. (날짜를 바꾸면 사라져요)
@@ -4487,12 +4883,14 @@ function openForm(type, existing, presetDate, preset) {
   if (schema.kindKey && !rec[schema.kindKey]) rec[schema.kindKey] = schema.fields.find((f) => f.key === schema.kindKey).options[0];
   formImages = {};
   schema.fields.filter((f) => f.type === 'image' && !f.hidden).forEach((f) => { formImages[f.key] = rec[f.key] || null; });
-  formShots = type === 'art' ? [...rec.images] : [];
+  formShots = type === 'art' ? [...rec.images] : (schema.fields.some((f) => f.type === 'images') && Array.isArray(rec.images) ? [...rec.images] : []);
+  ui.studySubject = type === 'study' ? (rec.subject || '') : ''; // 공부 기록 창의 "지난번"이 처음 보여 줄 과목
+  ui.formRec = existing || null;
   staged = [];
   stopStagedPlayer();
   tempoDraft = type === 'violin' && tempoNum(rec.otherTempo) ? { o: String(tempoNum(rec.otherTempo)) } : {};
   const valueFor = (f) => (f.type === 'multi' ? Object.fromEntries(f.keys.map((k) => [k, rec[k]])) : rec[f.key]);
-  const shown = (f) => !f.hidden && (!f.legacy || hasValue(rec[f.key])); // 예전 칸(legacy)은 값이 들어 있을 때만 보여요
+  const shown = (f) => !f.hidden && (!f.legacy || hasValue(rec[f.key])) && !(f.noPlan && rec.plan); // 예전 칸(legacy)은 값이 들어 있을 때만 보여요 · noPlan 칸은 표에서 만든 기록에는 없어요
   const base = schema.fields.filter(shown);
   const datalists = schema.fields.filter((f) => f.suggest)
     .map((f) => `<datalist id="dl_${type}_${f.key}">${(type === 'violin' && f.key === 'piece' ? pieceSuggestions() : suggestions(type, f.key)).map((p) => `<option value="${esc(p)}">`).join('')}</datalist>`).join('');
@@ -4625,6 +5023,7 @@ async function submitForm(form) {
       data.books = out;
       continue;
     }
+    if (f.noPlan && !form.elements[f.key]) continue; // 표에서 만든 기록에는 없는 칸
     if (f.type === 'multi') { f.keys.forEach((k) => { data[k] = (form.elements[k].value || '').trim(); }); continue; }
     if (f.type === 'image') { data[f.key] = formImages[f.key] || ''; continue; }
     if (f.type === 'images') { data[f.key] = [...formShots]; continue; }
@@ -4642,6 +5041,7 @@ async function submitForm(form) {
       data[f.key] = raw;
     }
   }
+  if (type === 'study') data.unitIds = unitsFromRange(data.subject, data.range, old ? old.id : ''); // 한 것이 커리큘럼 단원과 맞으면 그 단원들이 한 것으로
   if (type === 'art') {
     if (!old && !formShots.length) { err.textContent = '사진을 한 장 이상 넣어 주세요.'; return; }
     if (!data.artKind) data.artKind = '크로키';
@@ -4672,6 +5072,7 @@ async function submitForm(form) {
   if (type === 'workout' && !rec.kind) rec.kind = EX_KIND; // 운동은 종류를 나누지 않아요 (예전 기록의 kind 는 그대로 보관)
   if (!old) assignStamp(rec); // 새 기록만 도장을 받아요 (고칠 때는 받은 도장이 그대로예요)
   if (!(await saveRecord(rec))) return;
+  if (type === 'study') await setUnitsDone(rec.unitIds || [], rec.date); // 고른 단원은 한 것으로
   if (lineStaged.length) { // 줄마다 곡 이름 + 이 기록의 날짜로 저장돼요 (Drive에도 곡별 폴더로 올라가요)
     for (const sg of lineStaged) await addRecording(lineNow.find((x) => x.line === sg.line).piece, { file: sg.file, date: rec.date, memo: '', name: sg.name, recId: rec.id });
     staged = staged.filter((x) => !x.line);
@@ -5139,6 +5540,13 @@ function openSettings() {
     <div class="settings-list">
       ${window.Sync ? Sync.cardHTML() : ''}
       <div class="card" style="margin:0">
+        <h3>📆 구글 캘린더 가져오기</h3>
+        <p class="meta">🗓 이번 주의 "📆 캘린더에서 가져오기"가 읽는 캘린더 이름이에요. 읽기만 하고 일정은 바꾸지 않아요. 처음 누를 때 캘린더 읽기 허용 창이 한 번 떠요.</p>
+        <div class="field"><label for="calNameTutor">과외 캘린더 이름</label><input id="calNameTutor" type="text" maxlength="60" autocomplete="off" value="${esc(calNames().tutor)}"></div>
+        <div class="field"><label for="calNameStudy">공부 캘린더 이름</label><input id="calNameStudy" type="text" maxlength="60" autocomplete="off" value="${esc(calNames().study)}"></div>
+        <button type="button" class="btn" data-act="calNamesSave">저장</button>
+      </div>
+      <div class="card" style="margin:0">
         <h3>백업 파일 만들기</h3>
         <p class="meta">모든 기록(그림 포함)을 파일 하나로 저장해요. 브라우저 기록을 지우기 전이나 컴퓨터를 바꿀 때 꼭 해 두세요.</p>
         <p class="meta"><b>마지막 백업: ${esc(lastBackupText())}</b></p>
@@ -5253,12 +5661,19 @@ document.addEventListener('click', async (e) => {
     case 'tabDatePick': { const inp = el.parentElement.querySelector('.date-bar-in'); if (inp) { try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); } } break; } // 날짜 글자를 누르면 날짜 선택 창
     case 'wkToday': if (ui.weekStart) { ui.weekStart = null; render(); } break; // 🗓 [이번 주] (이미 이번 주면 아무 일도 없어요)
     case 'wkPaste': openDlg(`<h2>📋 기본 시간표 붙여 넣기</h2>${pasteBoxHTML()}`, true); syncPasteBox(); break;
+    case 'unitToggle': await toggleUnit(el.dataset.cid, el.dataset.uid); break; // 단원 직접 체크 (공부 기록은 안 만들어요)
+    case 'wkStudy': if (!el.disabled) await setStudyCheck(el.dataset.date, Number(el.dataset.i || 0)); break;
+    case 'wkStudyEdit': openStudyBlockEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
+    case 'wkAddStudy': openBlockAdd('study', el.dataset.date); break;
     case 'wkTutor': openTutorEdit(el.dataset.date, el.dataset.id); break;
     case 'wkEx': openExEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
     case 'wkAddTutor': openBlockAdd('tutor', el.dataset.date); break;
     case 'wkAddEx': openBlockAdd('ex', el.dataset.date); break;
     case 'wkBlockDel': await deleteWeekBlock(); break;
     case 'wkText': openWeekAi(true); break;
+    case 'wkCal': await openCalImport(); break;
+    case 'calImportApply': await applyCalImport(); break;
+    case 'calNamesSave': { const t = ($('#calNameTutor').value || '').trim() || '과외'; const st = ($('#calNameStudy').value || '').trim() || '공부'; await setConfig('calendarNames', { tutor: t, study: st }); toast('캘린더 이름을 저장했어요.', 2500); break; }
     case 'wkAi': openWeekAi(); break;
     case 'wkAiApply': await applyWeekAi(); break;
     case 'wkReset': await resetWeekToBase(); break;
@@ -5331,6 +5746,7 @@ document.addEventListener('click', async (e) => {
         const on = input.value !== el.dataset.val;
         input.value = on ? el.dataset.val : '';
         box.querySelectorAll('.choice-btn').forEach((b) => { b.classList.toggle('on', on && b === el); b.setAttribute('aria-pressed', String(on && b === el)); });
+        if (input.name === 'subject' && input.form && input.form.dataset.type === 'study') syncLastNote();
         if (input.name === 'artKind' && input.form) syncKindFields(input.form); // 종류가 모작일 때만 "원본 사진" 칸이 보여요
       }
       break;
