@@ -4,7 +4,7 @@
    ☁ 구글 드라이브 동기화
    ---------------------------------------------------------------------
    - 로그인: 구글 GIS "토큰 방식". 액세스 토큰은 메모리에만 두고 어디에도 저장하지 않아요. (client secret·API 키·서버는 없어요)
-   - 권한: drive.file 하나뿐이에요. 이 앱이 만든 파일만 볼 수 있어요.
+   - 권한: drive.file(이 앱이 만든 파일만) + calendar.readonly(🗓 "캘린더에서 가져오기"를 눌렀을 때만, 읽기만)예요.
    - Drive에 생기는 것 (내 드라이브 → "나의 기록장 (동기화)" 폴더)
        journal.json                        기록 글 전체 + 삭제 표시 + 동기화 정보 (이미지 데이터는 없어요)
        img-<기록id>-<칸>-<번호>-<해시>.jpg  그림·원본·워치 캡처 한 장에 파일 하나
@@ -18,6 +18,8 @@
 (() => {
   const CFG = { clientId: '', deployUrl: '', folderName: '나의 기록장 (동기화)', tombstoneDays: 60, staleDays: 60, ...(window.SYNC_CONFIG || {}) };
   const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  const CAL_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly'; // 🗓 "📆 캘린더에서 가져오기"에서만 써요 (읽기만, 일정 만들기·고치기 없음)
+  const CAL_API = 'https://www.googleapis.com/calendar/v3';
   const API = 'https://www.googleapis.com/drive/v3';
   const UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
   const JOURNAL_NAME = 'journal.json';
@@ -92,6 +94,8 @@
     origin: '이 주소가 구글 설정의 "승인된 JavaScript 원본"에 없을 수 있어요. README의 문제 해결을 확인해 주세요.',
     apidisabled: 'Google Drive API가 켜져 있지 않을 수 있어요. README의 문제 해결을 확인해 주세요.',
     forbidden: '구글이 요청을 허락하지 않았어요. 로그인한 계정과 권한(drive.file)을 확인해 주세요.',
+    noclient: '구글 로그인이 아직 설정되지 않았어요. README의 「구글 설정」을 확인해 주세요.',
+    calapi: 'Google Calendar API가 켜져 있지 않거나 캘린더 읽기 권한이 없어요. README의 문제 해결을 확인해 주세요.',
     fatal: '동기화 중 문제가 생겼어요. 조금 뒤에 다시 해 볼게요.',
   };
 
@@ -181,6 +185,77 @@
       } finally { S.tokenP = null; }
     })();
     return S.tokenP;
+  }
+
+  /* ---- 구글 캘린더 읽기 (🗓 가져오기 전용. 토큰은 메모리에만, 읽기 요청만 보내요) ---- */
+  const calValid = () => !!S.calToken && now() < S.calExp;
+  function requestCalToken() {
+    return new Promise((resolve, reject) => {
+      try {
+        const hint = (S.meta && S.meta.email) || '';
+        const tc = google.accounts.oauth2.initTokenClient({
+          client_id: CFG.clientId, scope: CAL_SCOPE, ...(hint ? { hint } : {}),
+          callback: (resp) => {
+            if (resp && resp.access_token) {
+              S.calToken = resp.access_token; // 메모리에만! (localStorage·IndexedDB에 저장하지 않아요)
+              S.calExp = now() + Math.max(60, (Number(resp.expires_in) || 3600) - 120) * 1000;
+              resolve(resp.access_token);
+            } else reject(authError(resp));
+          },
+          error_callback: (err) => reject(authError(err)),
+        });
+        tc.requestAccessToken({ ...(hint ? { hint } : {}) }); // 처음 한 번은 동의 화면이 떠요
+      } catch (e) { reject(authError(e)); }
+    });
+  }
+  async function calendarToken() {
+    if (!CFG.clientId) throw new SyncError('noclient');
+    if (calValid()) return S.calToken;
+    if (!gisReady()) await loadGIS();
+    const t = await requestCalToken();
+    S.calGranted = true;
+    return t;
+  }
+  async function calendarGet(path, params) {
+    const url = new URL(CAL_API + path);
+    if (params) Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') url.searchParams.set(k, v); });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const token = await calendarToken();
+      let res;
+      try { res = await fetch(url, { method: 'GET', headers: { Authorization: `Bearer ${token}` } }); } catch (e) { throw new SyncError('offline'); }
+      if (res.ok) return res.json();
+      if (res.status === 401 && attempt === 0) { S.calToken = null; continue; }
+      let msg = ''; try { const j = await res.json(); msg = (j.error && j.error.message) || ''; } catch (e) { /* 괜찮아요 */ }
+      if (res.status === 401) throw new SyncError('auth');
+      if (res.status === 403 || res.status === 404) throw new SyncError('calapi', msg);
+      if (res.status === 429 || res.status >= 500) throw new SyncError('server', msg);
+      throw new SyncError('server', msg || `HTTP ${res.status}`);
+    }
+    throw new SyncError('auth');
+  }
+  // 이름이 정확히 같은 캘린더에서 그 주(일~토, Asia/Seoul)의 일정을 모두 읽어요 (취소된 일정 · 종일 일정은 빼고, 다음 페이지 끝까지)
+  async function calendarWeek(sun, names) {
+    const list = []; let pageToken = '';
+    do { const r = await calendarGet('/users/me/calendarList', { minAccessRole: 'reader', maxResults: 250, pageToken }); list.push(...(r.items || [])); pageToken = r.nextPageToken || ''; } while (pageToken);
+    const nameOf = (c) => String(c.summaryOverride || c.summary || '').trim();
+    const [y, m, d] = sun.split('-').map(Number);
+    const end = new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10);
+    const out = { events: {}, missing: [] };
+    for (const [key, name] of Object.entries(names)) {
+      const cals = list.filter((c) => nameOf(c) === String(name || '').trim());
+      if (!cals.length) { out.missing.push(name); out.events[key] = []; continue; }
+      const evs = [];
+      for (const c of cals) {
+        let tok = '';
+        do {
+          const r = await calendarGet(`/calendars/${encodeURIComponent(c.id)}/events`, { timeMin: `${sun}T00:00:00+09:00`, timeMax: `${end}T00:00:00+09:00`, singleEvents: 'true', orderBy: 'startTime', timeZone: 'Asia/Seoul', maxResults: 250, pageToken: tok });
+          evs.push(...(r.items || []).filter((e) => e.status !== 'cancelled' && e.start && e.start.dateTime && e.end && e.end.dateTime));
+          tok = r.nextPageToken || '';
+        } while (tok);
+      }
+      out.events[key] = evs;
+    }
+    return out;
   }
 
   /* ---------------------------------------------------------------------
@@ -1375,7 +1450,7 @@
         if (t) await new Promise((res) => { try { google.accounts.oauth2.revoke(t, () => res()); } catch (e) { res(); } });
       }
     } catch (e) { /* 취소하지 못해도 이 기기에서는 끊어요 */ }
-    S.token = null; S.tokenExp = 0; S.needReconnect = false; S.remote = { version: '', journal: null };
+    S.token = null; S.tokenExp = 0; S.calToken = null; S.calExp = 0; S.calGranted = false; S.needReconnect = false; S.remote = { version: '', journal: null };
     clearTimeout(S.debounceT); clearTimeout(S.retryT);
     const keepDevice = S.meta.deviceId; const m0 = S.meta;
     S.meta = { ...emptyMeta(), deviceId: keepDevice, email: m0.email, wifiOnly: m0.wifiOnly, last: wipe ? null : { email: m0.email, base: m0.base, abase: m0.abase, audioAsked: m0.audioAsked, audioHold: m0.audioHold, arootId: m0.arootId, aorgAsked: m0.aorgAsked, aorg: m0.aorg, alegacy: m0.alegacy, folderId: m0.folderId, journalId: m0.journalId, firstDone: m0.firstDone, lastSyncAt: m0.lastSyncAt, conflicts: m0.conflicts } };
@@ -1687,7 +1762,7 @@
 
   window.Sync = {
     notify, cardHTML, isEnabled: () => !!(S.meta && S.meta.enabled), openDetail,
-    audioBadge, fetchLabel, fetchAudio,
+    audioBadge, fetchLabel, fetchAudio, calendarWeek, friendly: (e) => (e && FRIENDLY[e.kind]) || (e && e.message) || FRIENDLY.fatal,
     // 자동 시험용 (화면에서는 쓰지 않아요)
     __t: {
       S, T, CFG, maybeAskAudio, maybeAskOrganize, safeName, audioFolderName, audioBaseName, audioHeld, runSync, envMode, chipModel, pendingCount, conflictCount, loadMeta, saveMeta, firstLogin, decide, sigLocal, sigRemote, fmtVal, labelOf, resolveConflict,

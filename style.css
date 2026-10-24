@@ -768,7 +768,9 @@ dialog.roomy { width: min(900px, 92vw); }
 
 /* ---------- 🗓 이번 주: 항상 표로 보여요 · 도구 줄· 기본 시간표 붙여 넣기 ---------- */
 /* 색은 위 :root 의 변수만 써요. 운동 블록은 종류와 상관없이 파랑 하나(--ex-soft / --ex)이고, 과외는 온라인 연보라 · 대면 연분홍이에요. */
-.wkp-hours { margin: 0; text-align: right; white-space: nowrap; } /* 이번 주 과외 회수·시간: 제목 설명 글 아래, n월 n주 줄 위, 오른쪽 */
+.wkp-hours { margin: 0; text-align: right; white-space: nowrap; }
+.wkp-hours-row { display: flex; justify-content: flex-end; gap: 4px 14px; flex-wrap: wrap; }
+.wkp-study-hours { margin: 0; text-align: right; white-space: nowrap; color: var(--purple); } /* 이번 주 과외 회수·시간: 제목 설명 글 아래, n월 n주 줄 위, 오른쪽 */
 .wkp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 12px; }
 .wkp-label { flex: 1 1 auto; text-align: center; min-width: 11em; font-variant-numeric: tabular-nums; }
 .wkp-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
@@ -866,3 +868,70 @@ button.wkt-b, button.wkt-chip { cursor: pointer; transition: filter .12s; } /* �
 button.wkt-b:hover, button.wkt-chip:hover { filter: brightness(.96); }
 button.wkt-b:active, button.wkt-chip:active { filter: brightness(.9); }
 button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- 📐 공부 블록 (표) ---------- */
+.wkt-b.study, .wkt-chip.study { background: var(--purple-soft); color: var(--purple); border: 1.5px solid var(--purple); }
+.wkt-sw.study { background: var(--purple-soft); border: 1.5px solid var(--purple); }
+.wkp-dayst { display: grid; gap: 6px; }
+.wkp-dayst-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--purple); border-radius: 12px; background: var(--purple-soft); color: var(--purple); font: inherit; text-align: left; cursor: pointer; }
+.wkp-dayst-row:hover { filter: brightness(.97); }
+.wkp-dayst-row:active { filter: brightness(.92); }
+.wkp-dayst-n { flex: 1 1 auto; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.study-tag { background: var(--purple-soft); color: var(--purple); }
+.study-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.study-img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.wkp-diff { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
+.wkp-diff li { padding: 6px 10px; border-radius: 10px; background: var(--bg); }
+
+/* ---------- 📐 한 것 · 이번 주 할 단원 · 단원 칩 ---------- */
+.last-note { margin: 0 0 6px; padding: 4px 10px; border-radius: 10px; background: var(--purple-soft); color: var(--purple); font-size: .85rem; }
+.wkp-units { margin: 16px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.wkp-units > h3 { margin: 0 0 8px; font-size: 1rem; }
+.cur-item { margin: 4px 0 12px; }
+.cur-head { display: flex; align-items: center; gap: 4px 10px; flex-wrap: wrap; margin-bottom: 6px; }
+/* ---------- 📐 수능 탭 ---------- */
+.study-next { margin: 0 0 14px; padding: 8px 12px; border-radius: 12px; background: var(--purple-soft); color: var(--purple); font-weight: 700; }
+.study-sec { margin: 0 0 22px; }
+.study-sec > h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.study-sub { margin: 0 0 8px; padding: 4px 12px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.study-sub > summary { padding: 8px 0; min-height: 28px; font-weight: 700; color: var(--ink); }
+.cur-name { font-weight: 700; overflow-wrap: anywhere; }
+.cur-tools { margin-left: auto; display: flex; gap: 6px; }
+.unit-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.unit-btn { min-height: 36px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: .88rem; cursor: pointer; }
+.unit-btn:hover { border-color: var(--purple); }
+.unit-btn.done { background: var(--bg); color: var(--muted); opacity: .6; text-decoration: line-through; }
+.road-fold { margin-top: 10px; }
+.road-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 8px; padding: 10px 12px; border-radius: 12px; background: var(--bg); line-height: 1.55; }
+.road-form textarea { width: 100%; }
+.road-form .row { margin-top: 6px; gap: 8px; }
+.study-sub .row { margin-top: 6px; }
+.study-tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.study-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.study-table th, .study-table td { padding: 8px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.study-table th { color: var(--muted); font-weight: 600; font-size: .8rem; white-space: nowrap; }
+.study-table tbody tr { cursor: pointer; }
+.study-table tbody tr:hover { background: var(--bg); }
+.study-table tbody tr:last-child td { border-bottom: 0; }
+.link-btn { padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.study-cards { display: none; }
+.study-day h4 { margin: 12px 0 6px; font-size: .95rem; color: var(--muted); }
+.study-card { display: flex; flex-direction: column; gap: 2px; width: 100%; margin: 0 0 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.study-card-sub { font-weight: 700; color: var(--purple); }
+.mock-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.mock-row { display: grid; grid-template-columns: auto auto auto 1fr; align-items: baseline; gap: 4px 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.mock-sub { font-weight: 700; color: var(--purple); }
+.mock-score { font-variant-numeric: tabular-nums; font-weight: 700; }
+.mock-memo { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .study-tbl { display: none; }
+  .study-cards { display: block; }
+  .mock-row { grid-template-columns: auto auto 1fr; }
+  .mock-memo { grid-column: 1 / -1; }
+}
+.study-hours { margin: 0 0 8px; text-align: right; color: var(--purple); }
+.cur-last { margin: 0 0 6px; }
+.cf-weeks { align-items: center; gap: 6px; flex-wrap: nowrap; }
+.cf-weeks select { flex: 1 1 0; min-width: 0; }
+.study-mark { gap: 2px; flex-wrap: wrap; }
+.subj-chip { display: inline-block; min-width: 1.35em; padding: 0 4px; border-radius: 999px; background: var(--purple-soft); color: var(--purple); font-size: .7rem; font-weight: 700; line-height: 1.5; text-align: center; }
