@@ -240,6 +240,7 @@ const MENU_TABS = [
   { id: 'violin', label: '🎻 바이올린' },
   { id: 'econ', label: '📚 경제 루틴' },
   { id: 'english', label: '📰 영어' },
+  { id: 'study', label: '📐 수능' },
   { id: 'art', label: '🎨 그림' },
 ];
 const MENU_FOLDED_DEFAULT = ['art']; // 처음에는 🎨 그림만 접어 둬요
@@ -618,6 +619,11 @@ const ui = {
   calHidden: new Set(), // 캘린더에서 잠시 숨긴 종류
   dayOpen: null,        // 캘린더에서 열어 둔 날짜
   backToDay: null,      // 입력 창을 닫고 돌아갈 날짜
+  studyMonth: null,     // 📐 진도표에서 보고 있는 달 (null 이면 이번 달)
+  studyAll: new Set(),  // 📐 커리큘럼에서 "다 보기"를 켜 둔 교재 id
+  roadEdit: null,       // 📐 로드맵 글을 고치는 중인 과목
+  roadOpen: new Set(),  // 📐 펼쳐 둔 로드맵 과목
+  curEdit: null,        // 📐 교재·강의 고치기 창 { id, subject }
 };
 const ofType = (type) => records.filter((r) => r.type === type);
 
@@ -740,6 +746,7 @@ function render() {
   else if (ui.tab === 'econ') renderEcon();
   else if (ui.tab === 'cal') renderCalendar();
   else if (ui.tab === 'week') renderWeek();
+  else if (ui.tab === 'study') renderStudy();
   else renderArt();
   markTabDate();
   applySeason();
@@ -2842,6 +2849,174 @@ function renderWeek() {
 }
 
 /* ---------------------------------------------------------------------
+   📐 수능 탭 (메뉴 보이기·순서에 들어가요)
+   맨 위: 다음 시험 한 줄 → 커리큘럼(과목마다 접어 두기, 수학만 처음에 펼침) → 이달 진도표 → 📝 모평·학평.
+   설정 값: studyCurriculum(교재·강의와 단원) · studyRoadmap(과목별 로드맵 글) · studyExams(시험 날짜+이름) · studyOpen(펼친 과목)
+   숫자·비율·목표는 보여 주지 않아요.
+   --------------------------------------------------------------------- */
+const STUDY_EXAMS_DEFAULT = [{ date: '2026-11-06', label: '계속할지 다시 보기' }];
+function studyExams() {
+  const v = getConfig('studyExams', null);
+  const list = Array.isArray(v) ? v : STUDY_EXAMS_DEFAULT;
+  return list.filter((c) => c && /^\d{4}-\d{2}-\d{2}$/.test(String(c.date || '')) && String(c.label || '').trim())
+    .map((c) => ({ date: String(c.date), label: String(c.label).trim().slice(0, 60) })).sort((a, b) => a.date.localeCompare(b.date));
+}
+const examText = (c) => `${c.label} · ${c.date.slice(0, 4)}.${Number(c.date.slice(5, 7))}.${Number(c.date.slice(8))}`; // "3월 모평 · 2027.3.25" (D-숫자 없이 날짜만)
+const nextExam = () => studyExams().find((c) => c.date >= todayStr());
+const examsText = () => studyExams().map((c) => `${c.date} ${c.label}`).join('\n');
+function parseExams(text) {
+  return String(text || '').split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+    const m = l.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})\s+(.+)$/);
+    return m ? { date: `${m[1]}-${pad(Number(m[2]))}-${pad(Number(m[3]))}`, label: m[4].trim() } : null;
+  }).filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
+}
+const studyOpenSubjects = () => { const v = getConfig('studyOpen', null); return Array.isArray(v) ? v.filter((s) => STUDY_SUBJECTS.includes(s)) : ['수학']; };
+const studyRoadmaps = () => { const v = getConfig('studyRoadmap', {}); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; };
+const unitRows = (c) => [...c.units.filter((u) => !u.done), ...c.units.filter((u) => u.done)]; // 끝낸 단원은 뒤로 가라앉아요
+
+// 학습 기간: "10월 4주~12월 2주" (둘 다 없으면 빈 글, 하나만 있으면 "~12월 2주" · "10월 4주~")
+const periodWeeks = (c) => (c.from || c.to ? `${c.from ? weekShort(c.from) : ''}~${c.to ? weekShort(c.to) : ''}` : '');
+function curItemHTML(c) {
+  const all = ui.studyAll.has(c.id);
+  const doneN = c.units.filter((u) => u.done).length;
+  const shown = all ? unitRows(c) : c.units.filter((u) => !u.done);
+  const last = lastRangeOfCur(c); const per = periodWeeks(c);
+  return `<div class="cur-item" data-cid="${esc(c.id)}">
+    <div class="cur-head"><span class="cur-name">${esc(c.name)}</span><span class="meta">${esc(c.kind)}${per ? ` · ${esc(per)}` : ''}</span>
+      <span class="cur-tools">${doneN ? `<button type="button" class="btn ghost small" data-act="curAll" data-cid="${esc(c.id)}" aria-pressed="${all}">${all ? '남은 것만' : '다 보기'}</button>` : ''}<button type="button" class="btn ghost small" data-act="curEdit" data-cid="${esc(c.id)}">고치기</button></span></div>
+    ${last ? `<p class="meta cur-last">지난번: ${esc(last)}</p>` : ''}
+    ${shown.length ? `<div class="unit-chips">${shown.map((u) => unitBtnHTML(c, u)).join('')}</div>` : `<p class="meta">${c.units.length ? '남은 것이 없어요.' : '단원이 아직 없어요. 고치기에서 더해 보세요.'}</p>`}
+  </div>`;
+}
+function roadmapHTML(sub) {
+  const text = String(studyRoadmaps()[sub] || '');
+  const editing = ui.roadEdit === sub;
+  return `<details class="road-fold" data-subject="${esc(sub)}"${ui.roadOpen.has(sub) || editing ? ' open' : ''}><summary>로드맵</summary>
+    ${editing ? `<form class="road-form" data-subject="${esc(sub)}"><textarea id="roadText" rows="8" maxlength="6000" placeholder="클로드가 짜 준 주간 계획 글을 붙여 넣어 두세요">${esc(text)}</textarea>
+      <div class="row"><button type="submit" class="btn small">저장</button><button type="button" class="btn ghost small" data-act="roadCancel">취소</button></div></form>`
+      : `${text ? `<div class="road-text">${esc(text)}</div>` : '<p class="meta">아직 없어요. 클로드가 짜 준 주간 계획 글을 붙여 넣어 두세요.</p>'}
+      <button type="button" class="btn ghost small" data-act="roadEdit" data-subject="${esc(sub)}">${text ? '고치기' : '붙여 넣기'}</button>`}
+  </details>`;
+}
+function studySubjectHTML(sub) {
+  const items = studyCurriculum().filter((c) => c.subject === sub);
+  return `<details class="study-sub" data-subject="${esc(sub)}"${studyOpenSubjects().includes(sub) ? ' open' : ''}><summary>${esc(sub)}</summary>
+    ${items.map(curItemHTML).join('') || '<p class="meta">아직 교재·강의가 없어요.</p>'}
+    <div class="row"><button type="button" class="btn ghost small" data-act="curAdd" data-subject="${esc(sub)}">＋ 교재·강의 추가</button></div>
+    ${roadmapHTML(sub)}
+  </details>`;
+}
+
+// 이달 진도표
+const studyMonthOf = () => ui.studyMonth || todayStr().slice(0, 7);
+const studyRowsOf = (ym) => ofType('study').filter((r) => !r.sample && String(r.date || '').startsWith(ym)).sort(byOldest);
+const studyNoteHTML = (r) => `${esc(r.note || '')}${Array.isArray(r.images) && r.images.length ? ' 📷' : ''}`;
+function studyTableHTML(rows) {
+  if (!rows.length) return '<p class="meta">이달에는 아직 기록이 없어요. 🗓 이번 주에서 공부 블록을 체크하거나, 아래 ＋ 행 추가로 남겨 보세요.</p>';
+  const date = (r) => `<button type="button" class="link-btn" data-act="edit" data-type="study" data-id="${esc(r.id)}">${esc(mdLabel(r.date))}</button>`;
+  const table = `<div class="study-tbl"><table class="study-table"><thead><tr><th>날짜</th><th>과목</th><th>한 것</th><th>비고</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr data-act="edit" data-type="study" data-id="${esc(r.id)}"><td>${date(r)}</td><td>${esc(r.subject || '')}</td><td>${esc(r.range || '')}</td><td>${studyNoteHTML(r)}</td></tr>`).join('')}
+  </tbody></table></div>`;
+  const days = [...new Set(rows.map((r) => r.date))];
+  const cards = `<div class="study-cards">${days.map((d) => `<div class="study-day"><h4>${esc(mdLabel(d))}</h4>${rows.filter((r) => r.date === d).map((r) => `<button type="button" class="study-card" data-act="edit" data-type="study" data-id="${esc(r.id)}">
+      <span class="study-card-sub">${esc(r.subject || '공부')}</span>
+      ${hasValue(r.range) ? `<span>${esc(r.range)}</span>` : ''}
+      ${hasValue(r.note) || (r.images && r.images.length) ? `<span class="meta">${studyNoteHTML(r)}</span>` : ''}</button>`).join('')}</div>`).join('')}</div>`;
+  return table + cards;
+}
+function mockListHTML() {
+  const list = ofType('mockExam').filter((r) => !r.sample).sort(byOldest);
+  if (!list.length) return '<p class="meta">시험을 치르면 점수와 한 줄을 여기에 남겨요.</p>';
+  return `<ul class="mock-list">${list.map((r) => `<li><button type="button" class="mock-row" data-act="edit" data-type="mockExam" data-id="${esc(r.id)}">
+    <span class="mock-date">${esc(mdLabel(r.date))}</span><span class="mock-sub">${esc(r.subject || '')}</span><span class="mock-score">${r.score !== undefined && r.score !== '' ? `${esc(r.score)}점` : ''}</span><span class="mock-memo">${esc(r.memo || '')}</span></button></li>`).join('')}</ul>`;
+}
+function renderStudy() {
+  view.dataset.today = todayStr();
+  const ym = studyMonthOf();
+  const ex = nextExam(); const hrs = studyTimeText(studyMonthMin(ym));
+  view.innerHTML = `
+    <h2 class="page-title">수능</h2>
+    <p class="page-sub">공부한 것을 가볍게 남겨요. 점수 목표나 비교 없이, 어디까지 했는지만 적어요.</p>
+    ${ex ? `<p class="study-next">${esc(examText(ex))}</p>` : ''}
+    <section class="study-sec"><h3>커리큘럼</h3>${STUDY_SUBJECTS.map(studySubjectHTML).join('')}</section>
+    <section class="study-sec"><h3>진도표</h3>
+      <div class="wkp-head">
+        <button type="button" class="btn ghost small" data-act="studyMonth" data-d="-1" aria-label="지난달">◀</button>
+        <strong class="wkp-label">${esc(monthLabel(`${ym}-01`))}</strong>
+        <button type="button" class="btn ghost small" data-act="studyMonth" data-d="1" aria-label="다음달">▶</button>
+      </div>
+      ${hrs ? `<p class="meta study-hours">${esc(hrs)}</p>` : ''}
+      ${studyTableHTML(studyRowsOf(ym))}
+      <div class="row"><button type="button" class="btn ghost small" data-act="studyAddRow">＋ 행 추가</button></div>
+    </section>
+    <section class="study-sec"><h3>📝 모평·학평</h3>${mockListHTML()}
+      <div class="row"><button type="button" class="btn ghost small" data-act="add" data-type="mockExam">＋ 시험 기록</button></div>
+    </section>`;
+}
+
+// 커리큘럼 편집: 교재·강의 이름 · 종류 · 단원(번호 범위로 만들기 또는 한 줄에 하나씩)
+function expandRange(text) {
+  const m = String(text || '').trim().match(/^(\D*?)(\d+)(\D*?)\s*[~～–-]\s*(\D*?)(\d+)(\D*)$/);
+  if (!m) return [];
+  const a = Number(m[2]); const b = Number(m[5]);
+  if (b < a || b - a > 499) return [];
+  const suffix = m[3] || m[6] || '';
+  return Array.from({ length: b - a + 1 }, (_, i) => `${m[1]}${a + i}${suffix}`);
+}
+// 주 선택 목록: 오늘 기준 8주 전 ~ 80주 뒤 (이미 저장된 주는 범위 밖이어도 넣어요)
+function weekOptionsHTML(value) {
+  const base = weekStartOf(todayStr()); const weeks = [];
+  for (let i = -8; i <= 80; i += 1) weeks.push(addDays(base, 7 * i));
+  if (value && !weeks.includes(value)) weeks.push(value);
+  weeks.sort();
+  return `<option value="">(정하지 않음)</option>${weeks.map((w) => `<option value="${w}"${w === value ? ' selected' : ''}>${esc(weekShort(w))} (${esc(weekLabel(w).replace(/^.*\(|\)$/g, ''))})</option>`).join('')}`;
+}
+function openCurEdit(cid, subject) {
+  const c = cid ? studyCurriculum().find((x) => x.id === cid) : null;
+  ui.curEdit = { id: cid || '', subject: c ? c.subject : subject };
+  openDlg(`<h2>${c ? '교재·강의 고치기' : `${esc(subject)} 교재·강의 추가`}</h2>
+    <form id="curForm" novalidate>
+      <div class="field"><label for="cf_name">이름</label><input id="cf_name" type="text" maxlength="60" autocomplete="off" placeholder="예: 시발점 대수" value="${esc(c ? c.name : '')}"></div>
+      <div class="field"><label>종류</label>${choiceHTML('kind', STUDY_KINDS, c ? c.kind : '강의')}</div>
+      <div class="field"><label>학습 기간 - 선택</label><div class="row cf-weeks"><select id="cf_from" aria-label="시작 주">${weekOptionsHTML(c ? c.from : '')}</select><span>~</span><select id="cf_to" aria-label="끝 주">${weekOptionsHTML(c ? c.to : '')}</select></div><div class="hint">클로드가 짜 준 로드맵을 보고 적어요. 끝 주까지 남은 주 수로 이번 주 몫이 정해져요.</div></div>
+      ${c ? '' : '<div class="field"><label for="cf_range">번호 범위로 만들기 - 선택</label><input id="cf_range" type="text" maxlength="30" autocomplete="off" placeholder="예: 1강~40강"></div>'}
+      <div class="field"><label for="cf_units">${c ? '단원 (한 줄에 하나씩)' : '또는 한 줄에 하나씩 - 선택'}</label><textarea id="cf_units" rows="${c ? 10 : 5}" placeholder="예: 지수와 로그">${esc(c ? c.units.map((u) => u.name).join('\n') : '')}</textarea></div>
+      <div class="error" id="curError" role="alert"></div>
+      <div class="dlg-actions">${c ? '<button type="button" class="btn danger" data-act="curDelete">이 교재 지우기</button>' : ''}<button type="button" class="btn ghost" data-act="closeDlg">취소</button><button type="submit" class="btn">저장</button></div>
+    </form>`, 'roomy');
+}
+async function saveCurEdit() {
+  const ed = ui.curEdit; if (!ed) return;
+  const name = ($('#cf_name').value || '').trim(); const err = $('#curError');
+  if (!name) { err.textContent = '이름을 적어 주세요.'; $('#cf_name').focus(); return; }
+  const kind = $('#f_kind').value || '강의';
+  const names = [...(($('#cf_range') ? expandRange($('#cf_range').value) : [])), ...($('#cf_units').value || '').split('\n').map((s) => s.trim()).filter(Boolean)];
+  if ($('#cf_range') && $('#cf_range').value.trim() && !expandRange($('#cf_range').value).length) { err.textContent = "번호 범위는 '1강~40강'처럼 적어 주세요."; return; }
+  const list = studyCurriculum();
+  const old = ed.id ? list.find((c) => c.id === ed.id) : null;
+  const pool = old ? [...old.units] : [];
+  const units = names.map((n) => { const i = pool.findIndex((u) => u.name === n); if (i >= 0) return pool.splice(i, 1)[0]; return { id: newId(), name: n, done: false, doneAt: '' }; });
+  const from = $('#cf_from').value; const to = $('#cf_to').value;
+  if (from && to && to < from) { err.textContent = '끝 주가 시작 주보다 앞이에요.'; return; }
+  if (old) { old.name = name; old.kind = kind; old.from = from; old.to = to; old.units = units; } else list.push({ id: newId(), subject: ed.subject, name, kind, from, to, units });
+  await saveCurriculum(list);
+  closeDlg(); render();
+}
+async function deleteCurItem() {
+  const ed = ui.curEdit; const c = ed && studyCurriculum().find((x) => x.id === ed.id);
+  if (!c || !confirm(`'${c.name}'을(를) 지울까요?\n단원 표시도 함께 사라져요. 공부 기록은 그대로 남아요.`)) return;
+  await saveCurriculum(studyCurriculum().filter((x) => x.id !== c.id));
+  closeDlg(); render();
+}
+async function saveRoadmap(sub, text) {
+  const v = { ...studyRoadmaps() };
+  if (text.trim()) v[sub] = text; else delete v[sub];
+  await setConfig('studyRoadmap', v);
+  ui.roadEdit = null; render();
+}
+function studyAddRowDate() { const ym = studyMonthOf(); return ym === todayStr().slice(0, 7) ? todayStr() : `${ym}-01`; }
+
+/* ---------------------------------------------------------------------
    10-2. 메뉴 4: 캘린더 (2026년부터, 한눈에 보기)
    --------------------------------------------------------------------- */
 // 달력에 표시할 종류 (icon: 달력에 보이는 그림, label: 이름, chip: 위쪽 종류 버튼)
@@ -4901,6 +5076,7 @@ function openForm(type, existing, presetDate, preset) {
       ${datalists}
       <div class="error" id="formError" role="alert"></div>
       <div class="dlg-actions">
+        ${existing && (type === 'study' || type === 'mockExam') ? `<button type="button" class="btn danger" data-act="del" data-type="${type}" data-id="${esc(existing.id)}">삭제</button>` : ''}
         <button type="button" class="btn ghost" data-act="closeDlg">취소</button>
         <button type="submit" class="btn">저장</button>
       </div>
@@ -5579,6 +5755,12 @@ function openSettings() {
         <div id="recapToggles">${RECAP_SECTIONS.filter((x) => x.label).map((x) => `<label class="meta recap-toggle"><input type="checkbox" data-act="recapShow" data-id="${esc(x.id)}" ${recapOff().includes(x.id) ? '' : 'checked'}> ${esc(x.label)} 보이기</label>`).join('')}</div>
       </div>
       <div class="card" style="margin:0">
+        <h3>📐 수능 다음 시험</h3>
+        <p class="meta">📐 수능 탭 맨 위에는 오늘 이후 가장 가까운 것 하나만 날짜와 함께 나와요. 한 줄에 하나씩 <b>날짜 이름</b> (예: 2027-03-25 3월 모평). 날짜는 시험 일정이 나오면 맞춰 고쳐 주세요.</p>
+        <div class="field"><textarea id="cpText" rows="5" aria-label="시험 목록">${esc(examsText())}</textarea></div>
+        <button type="button" class="btn" data-act="cpSave">저장</button>
+      </div>
+      <div class="card" style="margin:0">
         <h3>메뉴 보이기</h3>
         <p class="meta">📅 캘린더는 항상 맨 앞에 보여요. 나머지는 <b>☐ 접어 두기</b>로 바꾸면 메뉴 끝의 ‹ 버튼 안으로 들어가요. ↑ ↓ 로 순서를 바꿔요. 접어 둔 탭의 기록도 캘린더·돌아보기·🤖 범위에는 그대로 나와요.</p>
         <div id="menuList">${menuListHTML()}</div>
@@ -5646,7 +5828,7 @@ document.addEventListener('click', async (e) => {
     case 'tab':
       if (ui.tab !== id && !(await confirmLeaveNote())) break; // 저장하지 않은 한 줄이 있으면 물어봐요
       if (ui.tab !== id && !(await confirmLeavePodcast())) break;
-      if (ui.tab !== id) { ui.vnView = 'records'; ui.econView = 'routine'; ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; ui.weekStart = null; } // 다른 메뉴에서 들어오면 늘 첫 칩(기록)부터 (🗓 이번 주는 이번 주부터)
+      if (ui.tab !== id) { ui.vnView = 'records'; ui.econView = 'routine'; ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; ui.weekStart = null; ui.studyMonth = null; ui.roadEdit = null; } // 다른 메뉴에서 들어오면 늘 첫 칩(기록)부터 (🗓 이번 주는 이번 주부터)
       ui.tab = id; ui.query = '';
       render(); window.scrollTo(0, 0); break;
     case 'setView': ui[el.dataset.key] = id; if (el.dataset.key === 'econView') { ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; } render(); break;
@@ -5661,7 +5843,15 @@ document.addEventListener('click', async (e) => {
     case 'tabDatePick': { const inp = el.parentElement.querySelector('.date-bar-in'); if (inp) { try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); } } break; } // 날짜 글자를 누르면 날짜 선택 창
     case 'wkToday': if (ui.weekStart) { ui.weekStart = null; render(); } break; // 🗓 [이번 주] (이미 이번 주면 아무 일도 없어요)
     case 'wkPaste': openDlg(`<h2>📋 기본 시간표 붙여 넣기</h2>${pasteBoxHTML()}`, true); syncPasteBox(); break;
-    case 'unitToggle': await toggleUnit(el.dataset.cid, el.dataset.uid); break; // 단원 직접 체크 (공부 기록은 안 만들어요)
+    case 'unitToggle': await toggleUnit(el.dataset.cid, el.dataset.uid); break;
+    case 'curAll': if (ui.studyAll.has(el.dataset.cid)) ui.studyAll.delete(el.dataset.cid); else ui.studyAll.add(el.dataset.cid); render(); break;
+    case 'curAdd': openCurEdit('', el.dataset.subject); break;
+    case 'curEdit': openCurEdit(el.dataset.cid); break;
+    case 'curDelete': await deleteCurItem(); break;
+    case 'roadEdit': ui.roadEdit = el.dataset.subject; ui.roadOpen.add(el.dataset.subject); render(); { const t = $('#roadText'); if (t) t.focus(); } break;
+    case 'roadCancel': ui.roadEdit = null; render(); break;
+    case 'studyMonth': ui.studyMonth = shiftMonth(studyMonthOf(), Number(el.dataset.d)); render(); break;
+    case 'studyAddRow': openForm('study', undefined, studyAddRowDate()); break;
     case 'wkStudy': if (!el.disabled) await setStudyCheck(el.dataset.date, Number(el.dataset.i || 0)); break;
     case 'wkStudyEdit': openStudyBlockEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
     case 'wkAddStudy': openBlockAdd('study', el.dataset.date); break;
@@ -5673,6 +5863,7 @@ document.addEventListener('click', async (e) => {
     case 'wkText': openWeekAi(true); break;
     case 'wkCal': await openCalImport(); break;
     case 'calImportApply': await applyCalImport(); break;
+    case 'cpSave': { await setConfig('studyExams', parseExams($('#cpText').value)); $('#cpText').value = examsText(); render(); toast('시험 일정을 저장했어요.', 2500); break; }
     case 'calNamesSave': { const t = ($('#calNameTutor').value || '').trim() || '과외'; const st = ($('#calNameStudy').value || '').trim() || '공부'; await setConfig('calendarNames', { tutor: t, study: st }); toast('캘린더 이름을 저장했어요.', 2500); break; }
     case 'wkAi': openWeekAi(); break;
     case 'wkAiApply': await applyWeekAi(); break;
@@ -5698,7 +5889,9 @@ document.addEventListener('click', async (e) => {
       const r = records.find((x) => x.id === id);
       const name = r ? (r.type === 'rest' ? '쉰 날' : (r.topic || (r.type === 'violin' ? pieceNamesOf(r)[0] : r.piece) || r.asset || r.kind || '이 기록')) : '이 기록';
       if (confirm(`'${name}' 기록을 지울까요?\n지운 기록은 되돌릴 수 없어요.`)) {
+        const inForm = dlg.open && dlg.querySelector('#recForm'); const back = ui.backToDay; // 고치기 창에서 지웠다면 창을 닫고, 날짜 창에서 왔으면 거기로 돌아가요
         await deleteRecord(id); render(); refreshDay();
+        if (inForm) { closeDlg(); if (back) openDay(back); }
         if (ui.artOpen === id && dlg.querySelector('.art-detail')) closeDlg(); // 열어 둔 그림 상세 창이면 닫아요
       }
       break;
@@ -5876,6 +6069,8 @@ document.addEventListener('submit', (e) => {
   else if (f.id === 'clForm') { e.preventDefault(); once(f, () => saveClaudeSettings()); }
   else if (f.id === 'fbEditForm') { e.preventDefault(); once(f, () => saveFeedbackEdit(f)); }
   else if (f.id === 'bookAddForm') { e.preventDefault(); once(f, () => addBook(f.elements[0].value)); }
+  else if (f.id === 'curForm') { e.preventDefault(); once(f, () => saveCurEdit()); }
+  else if (f.classList.contains('road-form')) { e.preventDefault(); once(f, () => saveRoadmap(f.dataset.subject, $('#roadText').value)); }
   else if (f.id === 'wkBlockForm') { e.preventDefault(); once(f, () => saveWeekBlock()); }
   else if (f.id === 'podForm') { e.preventDefault(); once(f, () => savePodcastTitle(f.dataset.date)); }
   else if (f.id === 'rtNoteForm') { e.preventDefault(); once(f, () => saveRoutineNote(f.dataset.date)); }
@@ -5955,6 +6150,16 @@ document.addEventListener('input', (e) => {
 $('#settingsBtn').addEventListener('click', openSettings);
 
 // 창이 닫히면(취소·Esc 포함) 안에 있던 입력 내용도 비워요
+document.addEventListener('toggle', (e) => { // 📐 과목 접기·펼치기는 기억해 둬요 (설정 값 studyOpen). 로드맵은 이 화면에서만
+  const d = e.target;
+  if (!d || !d.classList) return;
+  if (d.classList.contains('study-sub')) {
+    const sub = d.dataset.subject; const cur = studyOpenSubjects();
+    if (d.open !== cur.includes(sub)) setConfig('studyOpen', d.open ? [...cur, sub] : cur.filter((x) => x !== sub));
+  } else if (d.classList.contains('road-fold')) {
+    if (d.open) ui.roadOpen.add(d.dataset.subject); else if (ui.roadEdit !== d.dataset.subject) ui.roadOpen.delete(d.dataset.subject);
+  }
+}, true);
 dlg.addEventListener('close', () => { if (cleanupAsk) { const a = cleanupAsk; cleanupAsk = null; a.resolve(false); } revokeAudioUrls(dlg); stopStagedPlayer(); dlg.innerHTML = ''; formImages = {}; formShots = []; staged = []; formBase = ''; ui.dayOpen = null; ui.backToDay = null; ui.backToArt = null; ui.artOpen = null; });
 
 /* ---------------------------------------------------------------------
