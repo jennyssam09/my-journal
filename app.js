@@ -4703,8 +4703,10 @@ function validRecords(payload, bump = false) {
    0. 업데이트 정리: 없어진 기능의 데이터(경제 공부 메모·투자 기록, 바이올린 예전 칩, 그림 예전 칩·도구 등)를 한 번만 정리해요.
       정리하기 직전에 전체 백업 파일을 내려받고, 확인을 눌러야만 진행해요. (정리 대상은 아래 두 목록에 적힌 것뿐이에요)
    --------------------------------------------------------------------- */
-const CLEAN_DROP_TYPES = ['invest'];                // 통째로 지우는 기록 종류
-const dropType = (r) => CLEAN_DROP_TYPES.includes(r.type);
+const CLEAN_DROP_TYPES = ['study', 'invest'];                // 통째로 지우는 기록 종류
+// 예전 "경제 공부 메모"는 종류 이름이 study 였어요(주제 topic · 배운 내용 learned · 참고 링크 links). 수능 진도표 기록(study)은 아래 0-4 정리가 따로 맡아서, 예전 칸이 있는 것만 예전 기록으로 봐요.
+const isLegacyStudy = (r) => !!r && r.type === 'study' && (r.topic !== undefined || r.learned !== undefined || r.links !== undefined);
+const dropType = (r) => (r.type === 'study' ? isLegacyStudy(r) : CLEAN_DROP_TYPES.includes(r.type));
 const CLEAN_FIELDS = {                                        // 종류별로 지우는 칸
   violin: ['did', 'focus'],                                   // 예전 "오늘 한 것" 칩, "집중한 점" 칩
   art: ['kind', 'areas', 'tools', 'tried', 'hard'],           // 예전 종류·연습 영역 칩, 사용한 도구, 새로 시도한 점, 어려웠던 점
