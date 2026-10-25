@@ -171,13 +171,13 @@ const SCHEMAS = {
     ],
   },
   // 📐 진도표 행: 날짜 · 과목 · 한 것(글) · 비고(글·사진). 단원 막대의 칸을 누르면 (그 날짜, 그 교재) 행이 저절로 생겨요.
-  //   bookId = 교재(커리큘럼), unitIds = 그 행에 쌓인 단원, edited = 한 것 글을 직접 고쳤는지. 새로 만들 때만 날짜·과목·교재를 정해요 (addOnly).
+  //   bookId = 교재(커리큘럼), unitIds = 그 행에 쌓인 단원, edited = 한 것 글을 직접 고쳤는지. 새로 만들 때만 과목·교재를 정해요 (addOnly). 날짜는 고칠 수 있고(오늘까지), 바꾸면 그 행의 단원 doneAt 도 따라가요.
   //   minutes = 공부한 시간(분, 선택, 진도표 행에서만 적어요). 칸을 눌러 자동으로 생긴 행에는 없고 나중에 고치기에서 적어요. 점수·진행률은 없어요.
   study: {
     label: '진도표 행',
     keep: ['date', 'subject', 'bookId', 'unitIds', 'edited', 'plan'],
     fields: [
-      { key: 'date', label: '날짜', type: 'date', required: true, addOnly: true },
+      { key: 'date', label: '날짜', type: 'date', required: true, noFuture: true },
       { key: 'subject', label: '과목', type: 'choice', choices: STUDY_SUBJECTS, addOnly: true },
       { key: 'bookId', label: '교재 - 선택', type: 'bookPick', addOnly: true },
       { key: 'range', label: '한 것 - 선택', type: 'text', flat: true, placeholder: '예: 7강 12분까지 · p.42~p.58' },
@@ -1926,6 +1926,13 @@ async function setUnitsDone(ids, doneAt) {
   list.forEach((c) => c.units.forEach((u) => { if (ids.includes(u.id) && !u.done) { u.done = true; u.doneAt = doneAt; changed = true; } }));
   if (changed) await saveCurriculum(list);
 }
+// 진도표 행의 날짜를 옮겼을 때: 그 행의 단원 중 옛 날짜에 체크된 것의 doneAt 을 새 날짜로
+async function moveUnitsDoneAt(ids, from, to) {
+  if (!ids.length) return;
+  const list = studyCurriculum(); let changed = false;
+  list.forEach((c) => c.units.forEach((u) => { if (ids.includes(u.id) && u.done && u.doneAt === from) { u.doneAt = to; changed = true; } }));
+  if (changed) await saveCurriculum(list);
+}
 // "한 것" 글 → 커리큘럼 단원: 단원 이름이 글에 그대로 나오고(앞이 숫자가 아닐 때), 두 단원 사이에 ~ 가 있으면 그 사이 단원 모두. "3~5강"처럼 번호만 이어 쓴 것도 읽어요.
 const RANGE_SEP = /[~～∼–-]/;
 function matchUnitsIn(cur, text) {
@@ -2658,7 +2665,7 @@ function curItemHTML(c, i, n) {
   const last = lastRangeOfBook(c);
   const cell = (u) => `<button type="button" class="unit-cell${u.done ? ' on' : ''}" data-act="unitToggle" data-cid="${esc(c.id)}" data-uid="${esc(u.id)}" aria-pressed="${u.done}" title="${esc(u.name)}${u.done ? ' · 끝냄 (누르면 되돌려요)' : ''}" aria-label="${esc(u.name)}">${esc(unitCellText(u))}</button>`;
   return `<div class="cur-item" data-cid="${esc(c.id)}">
-    <div class="cur-head"><span class="cur-name">${esc(c.name)}</span><span class="meta">${esc(c.kind)}${c.from || c.to ? ` · ${esc(c.from ? monthShort(c.from) : '')}${c.from && c.to && c.from !== c.to ? `~${esc(monthShort(c.to))}` : c.to && !c.from ? `~${esc(monthShort(c.to))}` : ''}` : ''}</span>
+    <div class="cur-head"><button type="button" class="link-btn cur-name" data-act="curQuick" data-cid="${esc(c.id)}" title="이름·종류·달 고치기">${esc(c.name)}</button><span class="meta">${esc(c.kind)}${c.from || c.to ? ` · ${esc(c.from ? monthShort(c.from) : '')}${c.from && c.to && c.from !== c.to ? `~${esc(monthShort(c.to))}` : c.to && !c.from ? `~${esc(monthShort(c.to))}` : ''}` : ''}</span>
       <span class="cur-tools"><button type="button" class="btn ghost small" data-act="curMove" data-cid="${esc(c.id)}" data-d="-1" aria-label="${esc(c.name)} 위로"${i === 0 ? ' disabled' : ''}>↑</button><button type="button" class="btn ghost small" data-act="curMove" data-cid="${esc(c.id)}" data-d="1" aria-label="${esc(c.name)} 아래로"${i === n - 1 ? ' disabled' : ''}>↓</button><button type="button" class="btn ghost small" data-act="curEdit" data-cid="${esc(c.id)}">고치기</button></span></div>
     ${last ? `<p class="meta cur-last">지난번: ${esc(last)}</p>` : ''}
     ${c.units.length ? `<div class="unit-bar" role="group" aria-label="${esc(c.name)} 단원">${c.units.map(cell).join('')}</div>` : '<p class="meta">단원이 아직 없어요. 고치기에서 더해 보세요.</p>'}
@@ -2838,54 +2845,112 @@ function parseCurText(text) {
   });
   return { items, bad };
 }
-// 붙여 넣은 교재를 지금 목록에 얹어요. 같은 과목·이름이면 합치기(달과 새 단원만 더함) · 덮어쓰기(달·종류를 바꾸고 단원 목록을 글대로, 같은 이름 단원의 체크는 유지)
-function applyCurItems(list, items, mode) {
-  const out = list.map((c) => ({ ...c, units: c.units.map((u) => ({ ...u })) }));
-  const log = [];
+// 글 전체를 지금 커리큘럼으로 덮어써요: 과목·이름이 같은 교재는 그대로 이어지고(체크한 단원·진도표 행 유지), 글에 없는 교재는 빠져요.
+// 글에서 단원 칸을 아예 안 적은 교재는 단원을 그대로 둬요.
+function replaceCurriculum(list, items) {
+  const pool = list.map((c) => ({ ...c, units: c.units.map((u) => ({ ...u })) }));
+  const used = new Set(); const out = []; const log = [];
+  const mk = (n) => ({ id: newId(), name: n, done: false, doneAt: '' });
   items.forEach((it) => {
-    const old = out.find((c) => c.subject === it.subject && c.name === it.name);
-    const mk = (n) => ({ id: newId(), name: n, done: false, doneAt: '' });
+    const old = pool.find((c) => !used.has(c.id) && c.subject === it.subject && c.name === it.name);
     if (!old) { out.push({ id: newId(), subject: it.subject, name: it.name, kind: it.kind || '강의', from: it.from, to: it.to, units: (it.units || []).map(mk) }); log.push({ it, kind: 'new' }); return; }
-    if (it.kind) old.kind = it.kind;
-    if (it.from) { old.from = it.from; old.to = it.to; }
-    if (it.units && it.units.length) {
-      if (mode === 'overwrite') { const pool = [...old.units]; old.units = it.units.map((n) => { const i = pool.findIndex((u) => u.name === n); return i >= 0 ? pool.splice(i, 1)[0] : mk(n); }); }
-      else it.units.forEach((n) => { if (!old.units.some((u) => u.name === n)) old.units.push(mk(n)); });
-    }
-    log.push({ it, kind: mode === 'overwrite' ? 'over' : 'merge' });
+    used.add(old.id);
+    const next = { ...old, kind: it.kind || old.kind, from: it.from, to: it.to };
+    if (it.units) { const left = [...old.units]; next.units = it.units.map((n) => { const i = left.findIndex((u) => u.name === n); return i >= 0 ? left.splice(i, 1)[0] : mk(n); }); }
+    const same = next.kind === old.kind && (next.from || next.to) === (old.from || old.to) && (next.to || next.from) === (old.to || old.from) && J_(next.units.map((u) => u.name)) === J_(old.units.map((u) => u.name));
+    out.push(next); log.push({ it, kind: same ? 'same' : 'change' });
   });
-  return { list: out, log };
+  return { list: out, log, removed: pool.filter((c) => !used.has(c.id)) };
 }
+const J_ = (x) => JSON.stringify(x);
 const curItemLine = (it) => `${it.subject} · ${it.name}${it.kind ? ` · ${it.kind}` : ''}${it.from ? ` · ${monthShort(it.from)}${it.to !== it.from ? `~${monthShort(it.to)}` : ''}` : ''}${it.units && it.units.length ? ` · 단원 ${it.units[0]}${it.units.length > 1 ? `~${it.units[it.units.length - 1]}` : ''}` : ''}`;
+// 지금 커리큘럼 → 붙여 넣기 글 (저장해 둔 원문은 없어요. 열 때마다 지금 표에서 새로 만들어요)
+const curSafe = (s) => String(s || '').replace(/[|\r\n]/g, '/').replace(/[,，、]/g, ' ').replace(/\s+/g, ' ').trim();
+function curUnitsText(units) {
+  const parts = []; let i = 0;
+  const pr = (n) => { const m = /^(\D*?)(\d+)(\D*)$/.exec(n); return m && String(Number(m[2])) === m[2] && !/[~～∼–,-]/.test(m[1] + m[3]) ? { pre: m[1], n: Number(m[2]), suf: m[3] } : null; };
+  while (i < units.length) {
+    const a = pr(units[i]); let j = i;
+    while (a && j + 1 < units.length) { const b = pr(units[j + 1]); if (b && b.pre === a.pre && b.suf === a.suf && b.n === pr(units[j]).n + 1) j += 1; else break; }
+    if (a && j - i >= 2) { parts.push(`${units[i]}~${pr(units[j]).n}${a.suf}`); i = j + 1; } else { parts.push(units[i]); i += 1; }
+  }
+  return parts.join(', ');
+}
+function curText() {
+  const list = studyCurriculum();
+  return STUDY_SUBJECTS.flatMap((sub) => list.filter((c) => c.subject === sub).map((c) => {
+    const names = c.units.map((u) => curSafe(u.name)).filter(Boolean);
+    const from = c.from || c.to; const to = c.to || c.from;
+    return [sub, curSafe(c.name), c.kind, from ? (to !== from ? `${from}~${to}` : from) : '', names.length ? curUnitsText(names) : ''].filter((x, k) => k < 2 || x).join(' | ');
+  })).join('\n');
+}
+// 클로드에게 커리큘럼을 받을 때 붙여 보내는 형식 설명 (내 교재 이름은 들어가지 않아요)
+const CUR_FORMAT_TEXT = `커리큘럼을 아래 형식으로 써 주세요. 한 줄에 교재(강의) 하나, | 로 나눠요.
+과목 | 교재 이름 | 종류 | 시작 달~끝 달 | 단원
+- 과목(꼭): 국어, 수학, 영어, 통합사회, 통합과학, 한국사 중 하나
+- 교재 이름(꼭)
+- 종류: 강의, 교재, 기출 중 하나 (생략 가능)
+- 달: 2026-10 또는 2026-10~2026-12 (생략 가능)
+- 단원: 1강~40강처럼 번호 범위, 또는 쉼표로 나눈 이름 (생략 가능)
+종류·달·단원은 순서가 바뀌어도 읽어요. 설명 글이 섞여 있어도 | 가 있는 줄만 읽어요.
+예:
+수학 | (교재 이름) | 강의 | 2026-10~2026-12 | 1강~40강
+국어 | (교재 이름) | 교재 | 2026-11~2027-02 | 단원 이름1, 단원 이름2, 단원 이름3
+영어 | (교재 이름) | 기출 | 2027-03`;
 function curPasteHTML() {
   return `<h2>📥 커리큘럼 붙여 넣기</h2>
-    <p class="meta" style="margin-top:0">한 줄에 교재 하나, <b>|</b> 로 나눠요. 과목과 이름만 있어도 돼요. 설명 글이 섞여 있어도 <b>|</b> 가 있는 줄만 읽어요.</p>
-    <p class="hint pre">수학 | 시발점 대수 | 강의 | 2026-10~2026-12 | 1강~40강\n수학 | 쎈 | 교재 | 2026-11~2027-02 | 지수와 로그, 삼각함수, 수열</p>
-    <div class="field"><label for="curPasteText">붙여 넣기</label><textarea id="curPasteText" rows="7" spellcheck="false"></textarea></div>
-    <div class="field"><label>이미 있는 교재(과목·이름이 같은 것)는</label>${choiceHTML('mode', [{ v: 'merge', label: '합치기' }, { v: 'overwrite', label: '덮어쓰기' }], 'merge')}
-      <div class="hint">합치기: 달을 바꾸고 새 단원만 더해요. 덮어쓰기: 단원 목록을 글대로 맞춰요(같은 이름 단원의 체크는 그대로).</div></div>
-    <div id="curPastePrev" class="wkp-prevbox"><p class="meta">붙여 넣으면 여기에 읽은 교재가 보여요.</p></div>
+    <p class="meta" style="margin-top:0">지금 커리큘럼이 글로 들어 있어요. 고친 뒤 <b>반영</b>하면 글 전체가 지금 커리큘럼이 돼요(글에 없는 교재는 빠져요). 체크한 단원과 진도표 행은 과목·이름이 같으면 그대로 이어져요.</p>
+    <div class="cur-fmt-row"><details class="cur-fmt"><summary>형식</summary>
+      <p class="hint pre">한 줄에 교재 하나, | 로 나눠요.\n과목 | 교재 이름 | 종류 | 시작 달~끝 달 | 단원\n수학 | 시발점 대수 | 강의 | 2026-10~2026-12 | 1강~40강\n수학 | 쎈 | 교재 | 2026-11~2027-02 | 지수와 로그, 삼각함수, 수열\n과목·이름만 꼭 있어야 해요. 종류(강의/교재/기출)·달·단원은 생략하거나 순서를 바꿔도 돼요.</p></details>
+      <button type="button" class="btn ghost small" data-act="curFormatCopy">📋 형식 복사</button></div>
+    <div class="field"><label for="curPasteText">커리큘럼 글</label><textarea id="curPasteText" rows="9" spellcheck="false">${esc(curText())}</textarea></div>
+    <div id="curPastePrev" class="wkp-prevbox"></div>
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button><button type="button" class="btn" id="curPasteGo" data-act="curPasteApply" disabled>반영</button></div>`;
 }
-function openCurPaste() { openDlg(curPasteHTML(), 'roomy'); }
+function openCurPaste() { openDlg(curPasteHTML(), 'roomy'); syncCurPaste(); }
 function syncCurPaste() {
   const ta = $('#curPasteText'); const box = $('#curPastePrev'); const go = $('#curPasteGo');
   if (!ta || !box) return;
   const { items, bad } = parseCurText(ta.value);
-  const mode = ($('#f_mode') || {}).value || 'merge';
-  const res = applyCurItems(studyCurriculum(), items, mode);
+  const res = replaceCurriculum(studyCurriculum(), items);
+  const changed = res.log.filter((l) => l.kind !== 'same');
   box.innerHTML = `${bad.map((b) => `<p class="wkp-bad">읽지 못한 줄: ${esc(b.line)}<br><span>${esc(b.why)} — 이 줄은 건너뛰어요</span></p>`).join('')}
-    ${items.length ? `<ul class="wkp-diff">${res.log.map((l) => `<li>${l.kind === 'new' ? '＋ 새 교재' : l.kind === 'over' ? '↻ 덮어쓰기' : '＋ 합치기'} · ${esc(curItemLine(l.it))}</li>`).join('')}</ul>` : '<p class="meta">읽을 수 있는 줄이 아직 없어요.</p>'}`;
-  if (go) go.disabled = !items.length;
+    ${changed.length ? `<ul class="wkp-diff">${changed.map((l) => `<li>${l.kind === 'new' ? '＋ 새 교재' : '↻ 바뀜'} · ${esc(curItemLine(l.it))}</li>`).join('')}</ul>` : ''}
+    ${res.removed.length ? `<p class="wkp-bad">빠져요 (${res.removed.length}개): ${esc(res.removed.map((c) => `${c.subject} ${c.name}`).join(', '))}<br><span>체크한 단원은 사라지고, 진도표 행은 그대로 남아요</span></p>` : ''}
+    ${!changed.length && !res.removed.length ? `<p class="meta">${items.length ? '바뀐 곳이 없어요.' : '읽을 수 있는 줄이 아직 없어요.'}</p>` : ''}`;
+  if (go) go.disabled = !items.length || (!changed.length && !res.removed.length);
 }
 async function applyCurPaste() {
   const ta = $('#curPasteText'); if (!ta) return;
   const { items } = parseCurText(ta.value); if (!items.length) return;
-  const mode = ($('#f_mode') || {}).value || 'merge';
-  const res = applyCurItems(studyCurriculum(), items, mode);
+  const res = replaceCurriculum(studyCurriculum(), items);
+  if (res.removed.length && !confirm(`교재 ${res.removed.length}개가 빠져요 (${res.removed.map((c) => c.name).join(', ')}). 반영할까요?`)) return;
   await saveCurriculum(res.list);
   closeDlg(); render();
   toast('커리큘럼에 반영했어요.', 2500);
+}
+// 교재 줄을 누르면: 이름 · 종류 · 시작 달~끝 달만 바로 고치는 작은 창 (단원·지우기는 ✎ 고치기에서)
+function openCurQuick(cid) {
+  const c = studyCurriculum().find((x) => x.id === cid); if (!c) return;
+  ui.curEdit = { id: c.id, subject: c.subject };
+  openDlg(`<h2>${esc(c.subject)} 교재·강의</h2>
+    <form id="curQuickForm" novalidate>
+      <div class="field"><label for="qf_name">이름</label><input id="qf_name" type="text" maxlength="60" autocomplete="off" value="${esc(c.name)}"></div>
+      <div class="field"><label>종류</label>${choiceHTML('kind', STUDY_KINDS, c.kind)}</div>
+      <div class="field"><label>공부할 달 - 선택</label><div class="row cf-weeks"><select id="qf_from" aria-label="시작 달">${monthOptionsHTML(c.from)}</select><span>~</span><select id="qf_to" aria-label="끝 달">${monthOptionsHTML(c.to)}</select></div></div>
+      <div class="error" id="curQError" role="alert"></div>
+      <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button><button type="submit" class="btn">저장</button></div>
+    </form>`);
+}
+async function saveCurQuick() {
+  const ed = ui.curEdit; const err = $('#curQError'); if (!ed || !err) return;
+  const name = ($('#qf_name').value || '').trim().replace(/\s+/g, ' ');
+  if (!name) { err.textContent = '이름을 적어 주세요.'; $('#qf_name').focus(); return; }
+  const from = $('#qf_from').value; const to = $('#qf_to').value;
+  if (from && to && to < from) { err.textContent = '끝 달이 시작 달보다 앞이에요.'; return; }
+  const list = studyCurriculum(); const c = list.find((x) => x.id === ed.id); if (!c) return;
+  c.name = name; c.kind = $('#f_kind').value || c.kind; c.from = from; c.to = to;
+  await saveCurriculum(list); closeDlg(); render();
 }
 // 한 달 미루기: 시작·끝 달을 같이 한 달씩 뒤로 (경고도 표시도 없이 계획을 현실에 맞춰 조용히 옮겨요)
 async function postponeCurItem() {
@@ -4878,7 +4943,7 @@ function fieldHTML(f, value, type) {
       <div class="hint" id="imgNote_${esc(f.key)}"></div>
       <div class="img-preview" id="imgPreview_${esc(f.key)}"></div>`;
   } else {
-    const extra = f.type === 'number' ? ` min="${f.min ?? ''}"${f.max !== undefined ? ` max="${f.max}"` : ''} step="${f.step ?? 1}" inputmode="decimal"` : '';
+    const extra = f.noFuture ? ` max="${todayStr()}"` : f.type === 'number' ? ` min="${f.min ?? ''}"${f.max !== undefined ? ` max="${f.max}"` : ''} step="${f.step ?? 1}" inputmode="decimal"` : '';
     const sugg = f.suggest ? ` list="dl_${type}_${f.key}" autocomplete="off"` : '';
     input = `<input id="${id}" name="${f.key}" type="${f.type}" value="${esc(v)}"${extra}${sugg}${ph}>`;
     if (f.aux === 'other') input += lineAuxHTML('o', value); // "그 밖에 연습한 곡" 줄 아래의 템포 · 🎙 녹음 붙이기
@@ -5096,6 +5161,7 @@ async function submitForm(form) {
     if (f.required && !raw) {
       err.textContent = `'${cleanLabel(f.label)}' 칸을 채워 주세요.`; form.elements[f.key].focus(); return;
     }
+    if (f.noFuture && raw > todayStr()) { err.textContent = `'${cleanLabel(f.label)}'은 오늘까지만 고를 수 있어요.`; form.elements[f.key].focus(); return; }
     if (f.type === 'number') {
       if (raw === '') { data[f.key] = ''; continue; }
       const n = Number(raw);
@@ -5147,6 +5213,7 @@ async function submitForm(form) {
   if (!old && type !== 'study') assignStamp(rec); // 새 기록만 도장을 받아요 (📐 진도표 행은 도장 없음) (고칠 때는 받은 도장이 그대로예요)
   if (!(await saveRecord(rec))) return;
   if (type === 'study' && !old) await setUnitsDone(rec.unitIds || [], rec.date); // 한 것과 맞은 단원은 체크 (날짜 = 행의 날짜)
+  if (type === 'study' && old && old.date !== rec.date) await moveUnitsDoneAt(rec.unitIds || [], old.date, rec.date); // 날짜를 옮기면 그 행의 단원 체크 날짜도 따라가요
   if (lineStaged.length) { // 줄마다 곡 이름 + 이 기록의 날짜로 저장돼요 (Drive에도 곡별 폴더로 올라가요)
     for (const sg of lineStaged) await addRecording(lineNow.find((x) => x.line === sg.line).piece, { file: sg.file, date: rec.date, memo: '', name: sg.name, recId: rec.id });
     staged = staged.filter((x) => !x.line);
@@ -5737,6 +5804,8 @@ document.addEventListener('click', async (e) => {
     case 'curMove': await moveCurItem(el.dataset.cid, Number(el.dataset.d)); break;
     case 'gridCell': await gridCell(el.dataset.subject, el.dataset.month); break;
     case 'curPaste': openCurPaste(); break;
+    case 'curQuick': openCurQuick(el.dataset.cid); break;
+    case 'curFormatCopy': await copyText(CUR_FORMAT_TEXT, '형식을 복사했어요. 클로드에게 붙여 보내세요.', '형식'); break;
     case 'curPasteApply': await applyCurPaste(); break;
     case 'curPostpone': await postponeCurItem(); break;
     case 'curAdd': openCurEdit('', el.dataset.subject); break;
@@ -5824,7 +5893,6 @@ document.addEventListener('click', async (e) => {
         const on = input.value !== el.dataset.val;
         input.value = on ? el.dataset.val : '';
         box.querySelectorAll('.choice-btn').forEach((b) => { b.classList.toggle('on', on && b === el); b.setAttribute('aria-pressed', String(on && b === el)); });
-        if (input.name === 'mode' && $('#curPasteText')) syncCurPaste(); // 📥 커리큘럼 붙여 넣기: 합치기·덮어쓰기를 바꾸면 미리보기도 바뀌어요
         if (input.name === 'artKind' && input.form) syncKindFields(input.form); // 종류가 모작일 때만 "원본 사진" 칸이 보여요
       }
       break;
@@ -5955,6 +6023,7 @@ document.addEventListener('submit', (e) => {
   else if (f.id === 'fbEditForm') { e.preventDefault(); once(f, () => saveFeedbackEdit(f)); }
   else if (f.id === 'bookAddForm') { e.preventDefault(); once(f, () => addBook(f.elements[0].value)); }
   else if (f.id === 'curForm') { e.preventDefault(); once(f, () => saveCurEdit()); }
+  else if (f.id === 'curQuickForm') { e.preventDefault(); once(f, () => saveCurQuick()); }
   else if (f.id === 'wkBlockForm') { e.preventDefault(); once(f, () => saveWeekBlock()); }
   else if (f.id === 'podForm') { e.preventDefault(); once(f, () => savePodcastTitle(f.dataset.date)); }
   else if (f.id === 'rtNoteForm') { e.preventDefault(); once(f, () => saveRoutineNote(f.dataset.date)); }

@@ -880,7 +880,12 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .study-sec > h3 { margin: 0 0 8px; font-size: 1.05rem; }
 .study-sub { margin: 0 0 8px; padding: 4px 12px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
 .study-sub > summary { padding: 8px 0; min-height: 28px; font-weight: 700; color: var(--ink); }
-.cur-name { font-weight: 700; overflow-wrap: anywhere; }
+.cur-name { font-weight: 700; overflow-wrap: anywhere; font-size: 1rem; }
+.cur-fmt-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.cur-fmt { flex: 1 1 12rem; min-width: 0; }
+.cur-fmt summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.cur-fmt .hint { overflow-wrap: anywhere; white-space: pre-wrap; }
+#curPasteText { width: 100%; max-width: 100%; box-sizing: border-box; white-space: pre-wrap; overflow-wrap: anywhere; }
 .cur-tools { margin-left: auto; display: flex; gap: 6px; }
 .study-sub .row { margin-top: 6px; }
 .study-tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
