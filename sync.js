@@ -372,6 +372,7 @@
     if (typeof stripQuick === 'function') clean = stripQuick(clean, true);
     if (typeof violinCopy === 'function') clean = violinCopy(clean, true); // 예전 모양의 교재·곡 이름·교재 위치는 교재별 한 줄로, 기록 단위 템포는 첫 곡 줄로 옮겨요
     if (typeof weekLegacyCopy === 'function') clean = weekLegacyCopy(clean, true); // 🗓 예전 값(운동 종류 · 몸무게 · 예전 체크 해제 표시)은 정리에 동의한 뒤에만 받을 때 정리해요
+    if (typeof studyGoneCopy === 'function') clean = studyGoneCopy(clean, true); // 📐 수능이 없어졌어요: 정리에 동의한 뒤에는 받아 올 때 이번 주 기록의 공부 블록 칸도 같은 규칙이에요
     if (typeof simplifyCopy === 'function') clean = simplifyCopy(clean, true); // 클로드 요청 문구의 "할 일" 요청도 정리에 동의한 뒤에는 받아 올 때 같은 규칙이에요
     return clean;
   }
