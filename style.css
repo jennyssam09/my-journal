@@ -880,8 +880,6 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .study-tag { background: var(--purple-soft); color: var(--purple); }
 .study-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .study-img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
-.wkp-diff { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
-.wkp-diff li { padding: 6px 10px; border-radius: 10px; background: var(--bg); }
 
 /* ---------- 📐 한 것 · 이번 주 할 단원 · 단원 칩 ---------- */
 .last-note { margin: 0 0 6px; padding: 4px 10px; border-radius: 10px; background: var(--purple-soft); color: var(--purple); font-size: .85rem; }
@@ -917,10 +915,8 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .study-cards { display: none; }
 .study-day h4 { margin: 12px 0 6px; font-size: .95rem; color: var(--muted); }
 .study-card { display: flex; flex-direction: column; gap: 2px; width: 100%; margin: 0 0 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
-.study-card-sub { font-weight: 700; color: var(--purple); }
 .mock-list { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
 .mock-row { display: grid; grid-template-columns: auto auto auto 1fr; align-items: baseline; gap: 4px 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
-.mock-sub { font-weight: 700; color: var(--purple); }
 .mock-score { font-variant-numeric: tabular-nums; font-weight: 700; }
 .mock-memo { color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 640px) {
@@ -933,5 +929,14 @@ button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid v
 .cur-last { margin: 0 0 6px; }
 .cf-weeks { align-items: center; gap: 6px; flex-wrap: nowrap; }
 .cf-weeks select { flex: 1 1 0; min-width: 0; }
-.study-mark { gap: 2px; flex-wrap: wrap; }
-.subj-chip { display: inline-block; min-width: 1.35em; padding: 0 4px; border-radius: 999px; background: var(--purple-soft); color: var(--purple); font-size: .7rem; font-weight: 700; line-height: 1.5; text-align: center; }
+
+/* ---------- 과목 칩 (전체 이름 + 얇은 보라 테두리) ---------- */
+.subj-chip { display: inline-block; max-width: 100%; padding: 0 7px; border: 1px solid var(--purple); border-radius: 999px; background: var(--purple-soft); color: var(--purple); font-size: .74rem; font-weight: 600; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.study-mark { flex-wrap: wrap; gap: 2px 3px; min-width: 0; max-width: 100%; }
+.subj-more { display: none; color: var(--purple); font-size: .62rem; white-space: nowrap; }
+.study-card .subj-chip, .mock-row .subj-chip { align-self: flex-start; }
+@media (max-width: 720px) {
+  .study-mark .subj-chip { padding: 0 2px; font-size: clamp(.5rem, 2.3vw, .62rem); letter-spacing: -.02em; }
+  .study-mark .subj-chip.extra { display: none; }
+  .study-mark .subj-more { display: inline; }
+}
