@@ -868,7 +868,7 @@ button.wkt-b:active, button.wkt-chip:active { filter: brightness(.9); }
 button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- 여러 줄 메모 칸 (처음은 한 줄 높이, 글이 길어지면 늘어나요) ---------- */
-.field textarea.autogrow, textarea.rt-note-in.autogrow, .piece-memo textarea.autogrow { min-height: 0; height: auto; resize: none; overflow: hidden; line-height: 1.5; }
+.field textarea.autogrow, textarea.rt-note-in.autogrow, .piece-memo textarea.autogrow { min-height: 44px; height: auto; resize: none; overflow: hidden; line-height: 1.5; }
 textarea.rt-note-in { font: inherit; }
 .term-meaning, .rt-note-in { white-space: pre-wrap; }
 .piece-memo .row { align-items: flex-start; }
