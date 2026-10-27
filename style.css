@@ -866,3 +866,46 @@ button.wkt-b, button.wkt-chip { cursor: pointer; transition: filter .12s; } /* �
 button.wkt-b:hover, button.wkt-chip:hover { filter: brightness(.96); }
 button.wkt-b:active, button.wkt-chip:active { filter: brightness(.9); }
 button.wkt-b:focus-visible, button.wkt-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- 여러 줄 메모 칸 (처음은 한 줄 높이, 글이 길어지면 늘어나요) ---------- */
+.field textarea.autogrow, textarea.rt-note-in.autogrow, .piece-memo textarea.autogrow { min-height: 44px; height: auto; resize: none; overflow: hidden; line-height: 1.5; }
+textarea.rt-note-in { font: inherit; }
+.term-meaning, .rt-note-in { white-space: pre-wrap; }
+.piece-memo .row { align-items: flex-start; }
+.piece-memo textarea { flex: 1; min-width: 0; }
+
+/* ---------- 🗣 언어 탭 · 📅 캘린더 언어 칩 ---------- */
+.lang-chips { margin: 0 0 12px; }
+.lang-form { margin: 0 0 18px; }
+.lang-form .rt-row { flex-wrap: wrap; gap: 8px 12px; }
+.lang-form .lang-title { flex: 1 1 200px; min-width: 0; background: var(--card); }
+.lang-study-f { margin: 12px 0 8px; }
+.lang-study-f label { display: block; font-weight: 600; margin-bottom: 4px; }
+.lang-more { margin: 8px 0 12px; }
+.lang-more > summary { cursor: pointer; font-weight: 600; padding: 6px 0; min-height: 44px; display: flex; align-items: center; }
+.lang-more .multi-in { margin-top: 6px; }
+.lang-btns { gap: 8px; flex-wrap: wrap; }
+.lang-chip { display: inline-block; padding: 0 7px; border: 1px solid var(--purple); border-radius: 999px; background: var(--card); color: var(--purple); font-size: .74rem; font-weight: 600; line-height: 1.5; white-space: nowrap; vertical-align: baseline; }
+.lang-line { margin: 6px 0 2px; overflow-wrap: anywhere; }
+.lang-study { margin: 4px 0; }
+.lang-card { cursor: pointer; }
+.lang-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.lang-img { width: 72px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.check-line { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.cal-mark.lang-marks { flex-wrap: wrap; gap: 2px; }
+.cal-mark .lang-all { display: inline-flex; flex-wrap: wrap; gap: 2px; }
+.cal-mark .lang-short { display: none; align-items: center; gap: 2px; }
+.cal-mark .lang-chip { padding: 0 5px; font-size: .68rem; }
+.cal-mark .lang-more { font-size: .64rem; color: var(--muted); white-space: nowrap; }
+@media (max-width: 720px) {
+  .cal-mark.lang-marks.multi .lang-all { display: none; }
+  .cal-mark.lang-marks.multi .lang-short { display: inline-flex; }
+  .cal-mark .lang-chip { padding: 0 3px; font-size: clamp(.55rem, 2.6vw, .68rem); }
+}
+.lang-row { flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+.lang-name-in { flex: 1 1 8em; min-width: 0; }
+.lang-label-in { flex: 0 1 6.5em; min-width: 0; }
+.lang-hide { white-space: nowrap; }
+.lang-add { gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.lang-add input { flex: 1 1 8em; min-width: 0; }
+.lang-row input[type=text], .lang-name-in, .lang-label-in, .lang-add input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
