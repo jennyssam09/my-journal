@@ -176,7 +176,7 @@ dialog.roomy { width: min(780px, 94vw); } /* 입력 창: 넓은 화면에서 여
 .btn.ghost.purple { background: transparent; color: var(--purple); }
 .btn.ghost.purple:hover { background: var(--purple-soft); }
 
-.tag.lesson, .tag.rest { background: var(--purple-soft); color: var(--purple); }
+.tag.lesson { background: var(--purple-soft); color: var(--purple); }
 
 
 /* ---------- 캘린더 ---------- */
@@ -195,8 +195,6 @@ dialog.roomy { width: min(780px, 94vw); } /* 입력 창: 넓은 화면에서 여
 .cal-cell.has.amt1 { background: color-mix(in srgb, var(--purple) 8%, var(--purple-soft)); }
 .cal-cell.has.amt2 { background: color-mix(in srgb, var(--purple) 17%, var(--purple-soft)); }
 .cal-cell.has.amt3 { background: color-mix(in srgb, var(--purple) 28%, var(--purple-soft)); }
-.cal-cell.rest-only { background: var(--card); } /* 쉰 날은 색 없이 😴만 조용히 */
-.cal-mark.rest { color: var(--muted); }
 /* 오늘 칸: 틸 동그라미 안의 흰 숫자 + 틸 테두리 2px (배경은 연습량 보라 그대로) */
 .cal-cell.today { outline: 2px solid var(--teal); outline-offset: -2px; }
 .cal-cell.today .cal-num {
@@ -909,3 +907,5 @@ textarea.rt-note-in { font: inherit; }
 .lang-add { gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .lang-add input { flex: 1 1 8em; min-width: 0; }
 .lang-row input[type=text], .lang-name-in, .lang-label-in, .lang-add input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.lesson-line { margin: 4px 0 10px; }
+.day-lesson { padding: 6px 12px; }
