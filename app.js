@@ -2534,15 +2534,70 @@ function setWeekMode(m) {
 // 기본 시간표를 표로 보여 줄 모양 (보고 있는 주에 적용되는 과외만)
 // [기본] 표 아래 "한 줄씩 고치기": 블록마다 한 줄(요일 · 이름 · 시작 · 끝 · 방식 · 🗑). 칸을 고치면 바로 저장돼요(늘 보고 있는 주부터 계속)
 const dowOpts = (cur) => [...DOW].map((x, i) => `<option value="${i}"${i === cur ? ' selected' : ''}>${x}</option>`).join('');
-function blRowHTML(b, add) {
+function blRowHTML(b, add, wk) { // wk: [이번 주]의 한 줄 (이번 주만 바뀌어요) / 아니면 [기본]의 한 줄
   const id = add ? '' : esc(b.id);
-  return `<div class="bl-row${add ? ' bl-new' : ''}" ${add ? 'data-bl-new' : `data-bl-row="${id}"`}>
+  return `<div class="bl-row${add ? ' bl-new' : ''}" ${add ? 'data-bl-new' : `data-bl-row="${id}"`}${wk ? ' data-bl-wk' : ''}>
     <select class="bl-d" data-bl="d" aria-label="요일">${dowOpts(b.d === undefined ? 1 : b.d)}</select>
     <input class="bl-n" data-bl="name" type="text" maxlength="30" autocomplete="off" value="${esc(b.name || '')}" placeholder="이름" aria-label="이름">
     <span class="bl-t"><input data-bl="s" type="time" value="${t24(b.s)}" aria-label="시작"><span aria-hidden="true">~</span><input data-bl="e" type="time" value="${t24(b.e)}" aria-label="끝"></span>
     <select class="bl-m" data-bl="m" aria-label="방식"><option value="온라인"${b.m === '대면' ? '' : ' selected'}>온라인</option><option value="대면"${b.m === '대면' ? ' selected' : ''}>대면</option></select>
-    ${add ? '<button type="button" class="btn small bl-go" data-act="wkBaseRowAdd">＋ 더하기</button>' : `<button type="button" class="btn danger small bl-go" data-act="wkBaseRowDel" data-id="${id}" aria-label="${esc(`${b.name} 지우기`)}">🗑</button>`}
+    ${add ? `<button type="button" class="btn small bl-go" data-act="${wk ? 'wkWeekRowAdd' : 'wkBaseRowAdd'}">＋ 더하기</button>` : `<button type="button" class="btn danger small bl-go" data-act="${wk ? 'wkWeekRowDel' : 'wkBaseRowDel'}" data-id="${id}" aria-label="${esc(`${b.name} 지우기`)}">🗑</button>`}
   </div>`;
+}
+// [이번 주] 표 아래 "한 줄씩 고치기": 지금 보이는 과외 블록마다 한 줄. 고치면 이번 주에만 바뀌어요
+function weekLinesHTML(sun) {
+  const bl = tutorBlocksOf(sun).slice().sort((a, b) => a.d - b.d || (timeMin(a.s) || 0) - (timeMin(b.s) || 0));
+  return `<section class="card bl-list" id="weekLines" aria-label="이번 주 과외 한 줄씩 고치기">
+    <h3>한 줄씩 고치기</h3>
+    <p class="meta">칸을 고치면 바로 저장돼요 (이 주에만 바뀌어요. 기본 시간표를 바꾸려면 [기본]에서 해요).</p>
+    ${bl.map((b) => blRowHTML(b, false, true)).join('')}
+    <div class="label bl-lab">한 줄 더하기</div>
+    ${blRowHTML({ d: 1, m: '온라인' }, true, true)}
+    <p class="error" id="blErr" role="alert"></p>
+  </section>`;
+}
+async function saveWlRow(row) {
+  const sun = viewSun(); const err = $('#blErr');
+  const v = readBlRow(row);
+  if (v.why) { if (err) err.textContent = v.why; return; }
+  const id = row.dataset.blRow; const cur = tutorBlocksOf(sun).find((b) => b.id === id);
+  if (!cur) return;
+  const { d, ...nv } = v;
+  if (d === cur.d && !BLOCK_KEYS.some((k) => nv[k] !== cur[k])) return;
+  await updateWeekPlan(sun, (p) => {
+    const ai = p.tutor.add.findIndex((x) => x.id === id);
+    if (ai >= 0) { p.tutor.add[ai] = { ...p.tutor.add[ai], d, ...nv }; return; } // 이번 주만 더한 블록
+    const base = baseBlocksFor(sun).find((x) => x.id === id) || {};
+    if (d !== base.d) { // 요일을 바꾸면 이 주에서 기본 블록을 빼고 새 요일에 더해요
+      if (!p.tutor.del.includes(id)) p.tutor.del.push(id);
+      delete p.tutor.edit[id];
+      p.tutor.add.push({ id: newId(), d, ...nv });
+      return;
+    }
+    const patch = {};
+    BLOCK_KEYS.forEach((k) => { if (nv[k] !== base[k]) patch[k] = nv[k]; });
+    if (Object.keys(patch).length) p.tutor.edit[id] = patch; else delete p.tutor.edit[id];
+  });
+  render();
+}
+async function addWlRow(row) {
+  const sun = viewSun(); const err = $('#blErr');
+  const v = readBlRow(row);
+  if (v.why) { if (err) err.textContent = v.why; return; }
+  const { d, ...rest } = v;
+  await updateWeekPlan(sun, (p) => { p.tutor.add.push({ id: newId(), d, ...rest }); });
+  render();
+  toast('이 주에 더했어요.', 2000);
+}
+async function delWlRow(id) {
+  const sun = viewSun();
+  const inAdd = planTutor(weekPlanOf(sun)).add.some((x) => x.id === id);
+  await updateWeekPlan(sun, (p) => {
+    if (inAdd) p.tutor.add = p.tutor.add.filter((x) => x.id !== id);
+    else { if (!p.tutor.del.includes(id)) p.tutor.del.push(id); delete p.tutor.edit[id]; }
+  });
+  render();
+  toast('이 주에서 뺐어요.', 2000);
 }
 function baseLinesHTML(sun) {
   const bl = baseBlocksFor(sun).slice().sort((a, b) => a.d - b.d || (timeMin(a.s) || 0) - (timeMin(b.s) || 0));
@@ -2618,6 +2673,7 @@ function renderWeek() {
       <button type="button" class="btn ghost small" data-act="wkText">✎ 시간표 글 고치기</button>
     </div>
     ${weekTableHTML(weekModel(sun, null), {})}
+    ${weekLinesHTML(sun)}
     <div class="row wkp-tools">${tutorUsed(plan) ? '<button type="button" class="btn ghost small" data-act="wkReset">↺ 과외를 기본대로</button>' : ''}</div>`;
 }
 
@@ -5728,6 +5784,8 @@ document.addEventListener('click', async (e) => {
     case 'wkBaseBlock': openBaseEdit(el.dataset.date, el.dataset.id); break;
     case 'wkBaseAdd': openBaseAdd(el.dataset.date); break;
     case 'wkBaseRowAdd': await addBlRow(el.closest('.bl-row')); break;
+    case 'wkWeekRowAdd': await addWlRow(el.closest('.bl-row')); break;
+    case 'wkWeekRowDel': await delWlRow(id); break;
     case 'wkBaseRowDel': { const sun = viewSun(); await applyTutorBase(sun, { type: 'del', id }); render(); toast(`${shortDay(sun)} 주부터 계속 뺐어요.`, 2000); break; }
     case 'wkExCheck': await setWeekCheck(el.dataset.date, Number(el.dataset.i || 0), el.getAttribute('aria-pressed') !== 'true'); break; // 🧘 운동 탭: 줄을 눌러 체크
     case 'wkExEdit': openExEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
@@ -5956,7 +6014,7 @@ document.addEventListener('submit', (e) => {
 document.addEventListener('change', async (e) => {
   const t = e.target;
   if ('wxMemo' in t.dataset) { await saveWxMemo(t); return; }
-  if ('bl' in t.dataset) { const row = t.closest('.bl-row'); if (row && row.dataset.blRow) await saveBlRow(row); return; } // [기본] 한 줄씩 고치기: 칸을 고치면 바로 저장
+  if ('bl' in t.dataset) { const row = t.closest('.bl-row'); if (row && row.dataset.blRow) await ('blWk' in row.dataset ? saveWlRow(row) : saveBlRow(row)); return; } // [기본] 한 줄씩 고치기: 칸을 고치면 바로 저장
   if ('lesson' in t.dataset && t.type === 'checkbox') { await toggleLesson(t.dataset.date, t.checked); return; }
   if (t.dataset.routine && t.type === 'checkbox') { await setRoutineCheck(t.dataset.date, t.dataset.routine, t.checked); }
   if (t.id === 'wb_done' && ui.wkEdit && ui.wkEdit.kind === 'ex') { // 고치기 창 맨 위의 "했어요" 체크: 바로 저장돼요
