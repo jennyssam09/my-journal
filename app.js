@@ -2366,20 +2366,20 @@ function pastePreviewHTML(text) {
     <p class="meta">운동 줄은 읽지 않아요(운동은 [이번 주]의 📥로).</p>`;
 }
 const viewSun = () => weekKey(ui.weekStart || '') || weekStartOf(todayStr()); // 🗓 · 🧘 에서 보고 있는 주의 일요일
-function pasteBoxHTML() {
+function pasteBoxHTML(edit = false) {
   const sun = viewSun();
-  return `<section class="card wkp-paste" id="wkPaste">
-    <h3>📋 기본 시간표 붙여 넣기</h3>
-    <p class="meta">한 줄에 한 요일, 블록은 " / "로 나눠요. 과외는 "이름 9:00~11:00 온라인"처럼 써요. 클로드가 써 준 시간표 글도 그대로 읽고, 과외만 넣어요(운동 줄은 읽지 않아요). (이 주에만 반영하거나 운동까지 넣으려면 [이번 주]의 📥 를 써요)</p>
+  return `<section class="card wkp-paste" id="wkPaste"${edit ? ' data-edit' : ''}>
+    <h3>${edit ? '✎ 기본 시간표 글 고치기' : '📋 기본 시간표 붙여 넣기'}</h3>
+    <p class="meta">${edit ? '지금 기본 시간표의 과외를 글로 보여 줘요. 고친 뒤 반영하면 아래 주부터 이 시간표로 바뀌어요. 일~토 줄 전부를 그대로 다시 써요. ' : ''}한 줄에 한 요일, 블록은 " / "로 나눠요. 과외는 "이름 9:00~11:00 온라인"처럼 써요. 클로드가 써 준 시간표 글도 그대로 읽고, 과외만 넣어요(운동 줄은 읽지 않아요). (이 주에만 반영하거나 운동까지 넣으려면 [이번 주]의 📥 를 써요)</p>
     <textarea id="wkPasteText" rows="6" spellcheck="false" aria-label="기본 시간표" placeholder="월: 학생A 9:00~11:00 온라인 / 학생B 18:00~19:00 대면&#10;화: 학생C 16:00~17:30 온라인&#10;일: 휴식"></textarea>
     <div id="wkPastePrev" class="wkp-prevbox"></div>
     <p class="meta wkp-from">${tutorBaseEmpty() ? '아직 기본 시간표가 없어서 모든 주에 적용돼요.' : `${esc(shortDay(sun))} 주부터 이 시간표로 바꿔요. 그 전 주는 그대로예요.`}</p>
-    <div class="row"><button type="button" class="btn" id="wkPasteGo" data-act="wkPasteApply" disabled>이대로 넣기</button><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>
+    <div class="row"><button type="button" class="btn" id="wkPasteGo" data-act="wkPasteApply" disabled>${edit ? '이 주부터 반영' : '이대로 넣기'}</button><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>
   </section>`;
 }
 // 붙여 넣기 칸은 창("📋 기본 시간표 붙여 넣기") 안에 있어요.
 const wkq = (sel) => { const root = dlg.open && dlg.querySelector('#wkPaste'); return root ? root.querySelector(sel) : null; };
-const pasteBlocks = (ps) => parsedCounts(ps).tutors; // 📋 는 과외만 읽어요 (운동 줄은 무시)
+const pasteBlocks = (ps) => { const root = dlg.open && dlg.querySelector('#wkPaste'); return root && root.hasAttribute('data-edit') ? ps.any : parsedCounts(ps).tutors; }; // 글 고치기는 줄을 다 비워도(과외 없음) 반영할 수 있어요 // 📋 는 과외만 읽어요 (운동 줄은 무시)
 function syncPasteBox() {
   const ta = wkq('#wkPasteText'); const box = wkq('#wkPastePrev'); const go = wkq('#wkPasteGo');
   if (!ta || !box) return;
@@ -2395,7 +2395,8 @@ async function applyPaste() {
   const tutors = ps.days.flatMap((d) => d.tutors);
   const first = tutorBaseEmpty();
   const vs = tutorVersions();
-  if (tutors.length) {
+  const editing = dlg.open && !!dlg.querySelector('#wkPaste[data-edit]');
+  if (tutors.length || (editing && !first)) {
     if (first) await setConfig('tutorBase', [{ from: '', blocks: tutors }]); // 처음 넣는 시간표는 모든 주에 적용돼요
     else await setConfig('tutorBase', [...vs.filter((v) => v.from < sun), { from: sun, blocks: tutors }]); // 보고 있는 주부터 이 시간표로 (그 전 주는 그대로)
   }
@@ -2641,6 +2642,21 @@ async function addBlRow(row) {
   render();
   toast(`${shortDay(sun)} 주부터 계속 바뀌어요.`, 2000);
 }
+// ✎ 기본 시간표 글 고치기: 보고 있는 주의 기본 과외를 📥 가 읽는 글 모양으로 (과외만)
+function baseScheduleText(sun) {
+  const m = baseModel(sun);
+  const rows = m.days.map((day, d) => {
+    const all = day.tutors.slice().sort((a, b) => (timeMin(a.s) === null ? 1e9 : timeMin(a.s)) - (timeMin(b.s) === null ? 1e9 : timeMin(b.s)));
+    return `${DOW[d]}: ${all.length ? all.map((b) => blockText({ ...b, name: sched1(b.name) })).join(' / ') : '휴식'}`;
+  });
+  return `[시간표]\n${rows.join('\n')}`;
+}
+function openBaseText() {
+  const sun = viewSun();
+  openDlg(`<h2>✎ ${esc(weekLabel(sun))} 기본 시간표 글 고치기</h2>${pasteBoxHTML(true)}`, true);
+  const ta = wkq('#wkPasteText'); if (ta) ta.value = baseScheduleText(sun);
+  syncPasteBox();
+}
 const baseModel = (sun) => { const bl = baseBlocksFor(sun); return { sun, days: Array.from({ length: 7 }, (_, d) => ({ tutors: bl.filter((b) => b.d === d), ex: [] })), memo: '' }; };
 
 function renderWeek() {
@@ -2658,6 +2674,7 @@ function renderWeek() {
     <p class="page-sub">기본 시간표를 표에서 바로 고쳐요. 블록을 누르면 고치고, 요일 머리나 빈 칸을 누르면 그 요일에 더해요. 바꾸면 지금 보고 있는 주부터 계속 적용돼요.</p>
     ${weekNavHTML(sun, thisWeek, chips)}
     <p class="meta wkp-basenote">${tutorBaseEmpty() ? '기본 시간표 · 아직 없어요. 처음 넣으면 모든 주에 적용돼요' : `기본 시간표 · ${esc(shortDay(sun))} 주부터 고쳐요`}</p>
+    <div class="wkp-bar"><button type="button" class="btn ghost small" data-act="wkBaseText">✎ 기본 시간표 글 고치기</button></div>
     ${weekTableHTML(baseModel(sun), { mode: 'base' })}
     ${baseLinesHTML(sun)}
     <div class="row wkp-tools"><button type="button" class="btn ghost small" data-act="wkPaste">📋 기본 시간표 붙여 넣기</button></div>`;
@@ -5783,6 +5800,7 @@ document.addEventListener('click', async (e) => {
     case 'wkMode': setWeekMode(id); render(); break; // 🗓 [이번 주] [기본] 칩
     case 'wkBaseBlock': openBaseEdit(el.dataset.date, el.dataset.id); break;
     case 'wkBaseAdd': openBaseAdd(el.dataset.date); break;
+    case 'wkBaseText': openBaseText(); break;
     case 'wkBaseRowAdd': await addBlRow(el.closest('.bl-row')); break;
     case 'wkWeekRowAdd': await addWlRow(el.closest('.bl-row')); break;
     case 'wkWeekRowDel': await delWlRow(id); break;
