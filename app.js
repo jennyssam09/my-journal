@@ -201,6 +201,7 @@ const CAL_TAB = { id: 'cal', label: '📅 캘린더' };
 const MENU_TABS = [
   { id: 'week', label: '🗓 이번 주', first: true }, // 캘린더 바로 뒤 (저장된 메뉴 순서에 아직 없으면 맨 앞에 끼워요)
   { id: 'violin', label: '🎻 바이올린' },
+  { id: 'workout', label: '🧘 운동', after: 'violin' }, // 저장된 메뉴 순서에 아직 없으면 🎻 바이올린 바로 뒤에 끼워요
   { id: 'econ', label: '📚 경제 루틴' },
   { id: 'lang', label: '🗣 언어' },
   { id: 'art', label: '🎨 그림' },
@@ -213,6 +214,7 @@ const EMPTY_TEXT = {
   feedback: '아직 받은 피드백이 없어요. 위에서 복사해서 클로드에게 물어보세요.', // 📅 캘린더 › 🤖 클로드 피드백 › 받은 피드백
   violin: '아직 기록이 없어요. 위의 + 바이올린 기록으로 오늘 연습을 남겨 보세요. 10분도 괜찮아요.',
   shelf: '곡 이름을 적은 기록이 생기면 여기에 책처럼 꽂혀요.',
+  workout: '아직 운동 기록이 없어요. 위에서 했다고 줄을 눌러 체크하면 여기에 쌓여요.', // 🧘 운동 탭
   lang: '위에서 오늘 들은 것이나 공부한 것을 적어 보세요. 한 줄이면 돼요.',
   pastNotes: '저장한 메모가 여기에 쌓여요.', // 경제 루틴 "지난 한 줄 보기"
   terms: '새로 알게 된 용어를 내 말로 한 줄씩 적어 보세요. 클로드 피드백에서 알려 준 용어도 좋아요.', // 📒 용어 노트
@@ -574,7 +576,8 @@ const ui = {
   query: '',
   artOpen: null,      // 상세 창으로 열어 둔 그림 기록
   artPhoto: 0,        // 상세 창에서 보고 있는 사진 번호
-  weekStart: null,      // 🗓 이번 주 탭에서 보고 있는 주의 일요일 날짜 (null 이면 이번 주)
+  weekStart: null,      // 🗓 이번 주 · 🧘 운동 탭에서 보고 있는 주의 일요일 날짜 (null 이면 이번 주)
+  weekMode: null,       // 🗓 칩: 'week'([이번 주]) | 'base'([기본]). null 이면 이 기기에 기억해 둔 값 (다른 탭에 갔다 오면 [이번 주])
   wkAiWeek: null,       // 🗓 📥 클로드 시간표 붙여 넣기 창이 반영할 주(일요일 날짜)
   calMonth: null,       // 캘린더에서 보고 있는 달 (예: '2026-09')
   calHidden: new Set(), // 캘린더에서 잠시 숨긴 종류
@@ -665,7 +668,8 @@ function menuState() {
   const ids = MENU_TABS.map((t) => t.id);
   const saved = Array.isArray(v.order) ? v.order.filter((id, i, a) => ids.includes(id) && a.indexOf(id) === i) : [];
   const fresh = ids.filter((id) => !saved.includes(id));
-  const order = [...fresh.filter((id) => menuTab(id).first), ...saved, ...fresh.filter((id) => !menuTab(id).first)]; // 저장 뒤에 새로 생긴 탭은 맨 뒤에 (🗓 이번 주처럼 first 인 탭은 맨 앞에)
+  const order = [...fresh.filter((id) => menuTab(id).first), ...saved, ...fresh.filter((id) => !menuTab(id).first && !menuTab(id).after)]; // 저장 뒤에 새로 생긴 탭은 맨 뒤에 (🗓 이번 주처럼 first 인 탭은 맨 앞에)
+  fresh.filter((id) => menuTab(id).after).forEach((id) => { const at = order.indexOf(menuTab(id).after); order.splice(at >= 0 ? at + 1 : order.length, 0, id); }); // after 가 있는 탭(🧘 운동)은 그 탭 바로 뒤에
   const folded = Array.isArray(v.folded) ? v.folded.filter((id) => ids.includes(id)) : MENU_FOLDED_DEFAULT;
   return { order, folded: new Set(folded), open: !!v.open };
 }
@@ -704,6 +708,7 @@ function render() {
   else if (ui.tab === 'econ') renderEcon();
   else if (ui.tab === 'cal') renderCalendar();
   else if (ui.tab === 'week') renderWeek();
+  else if (ui.tab === 'workout') renderWorkout();
   else renderArt();
   markTabDate();
   applySeason();
@@ -1531,7 +1536,8 @@ function goToRecord(id) {
   else if (r.type === 'art') { ui.tab = 'art'; }
   else if (r.type === 'lang') { ui.tab = 'lang'; setLangId(r.lang); ui.tabDate = r.date < todayStr() ? r.date : null; }
   else if (r.type === 'violin') { ui.tab = 'violin'; ui.vnView = 'records'; }
-  const inDay = r.type !== 'econRoutine' && r.type !== 'art' && r.type !== 'lang' && r.type !== 'violin'; // 운동은 따로 목록이 없어서 그날의 기록 창으로 가요
+  else if (r.type === 'workout') { ui.tab = 'workout'; ui.weekStart = weekStartOf(r.date) === weekStartOf(todayStr()) ? null : weekStartOf(r.date); }
+  const inDay = r.type !== 'econRoutine' && r.type !== 'art' && r.type !== 'lang' && r.type !== 'violin' && r.type !== 'workout';
   ui.query = '';
   render();
   if (inDay) openDay(r.date);
@@ -2110,6 +2116,7 @@ function aiPreviewHTML(sun, text) {
   const missing = ps.days.map((d, i) => (d.present ? '' : DOW[i])).filter(Boolean);
   return `${ps.bad.map((b) => `<p class="wkp-bad">읽지 못한 줄: ${esc(b.line)}<br><span>${esc(b.why)} — 이 줄은 건너뛰어요</span></p>`).join('')}
     ${ps.any ? `<p class="meta">읽은 요일 ${7 - missing.length}개 · 과외 ${c.tutors}개 · 운동 ${c.ex}개${ps.memo ? ' · 메모 있음' : ''}${ps.dup.length ? ` · ${ps.dup.map((d) => DOW[d]).join('·')}요일은 여러 번 나와서 마지막 줄을 읽었어요` : ''}</p>
+    <p class="meta">운동은 🧘 운동 탭에 보여요.</p>
     ${missing.length && missing.length < 7 ? `<p class="meta">적지 않은 요일(${esc(missing.join('·'))})은 지금 모습 그대로 둬요.</p>` : ''}
     <div class="wkt-prevwrap">${weekTableHTML(weekModel(sun, ps), { preview: true })}</div>` : '<p class="meta">읽을 수 있는 요일 줄이 아직 없어요. ("월: 이름 9:00~11:00 온라인 / …" 모양이에요)</p>'}`;
 }
@@ -2158,7 +2165,7 @@ function openWeekAi(prefill = false) {
     return;
   }
   openDlg(`<h2>📥 ${esc(weekLabel(sun))}에 반영해요</h2>
-    <p class="meta" style="margin-top:0">클로드의 답을 통째로 붙여 넣어도 돼요. 앞뒤 설명 글과 코드 블록 표시(\`\`\`)는 무시하고 시간표 줄만 읽어요. 과외는 이 주에만 바뀌고(기본 시간표는 그대로), 운동은 이 주에만 표에 나타나요. 다음 주는 과외만 기본 시간표로 돌아가요.</p>
+    <p class="meta" style="margin-top:0">클로드의 답을 통째로 붙여 넣어도 돼요. 앞뒤 설명 글과 코드 블록 표시(\`\`\`)는 무시하고 시간표 줄만 읽어요. 과외는 이 주에만 바뀌고(기본 시간표는 그대로), 운동과 메모는 🧘 운동 탭에 나타나요. 다음 주는 과외만 기본 시간표로 돌아가요.</p>
     <div class="field"><label for="wkAiText">클로드가 써 준 시간표</label><textarea id="wkAiText" rows="8" spellcheck="false" placeholder="[시간표]&#10;일: 휴식&#10;월: 학생A 9:00~11:00 온라인 / 숄더 요가 12:00~12:30 운동 선택"></textarea></div>
     <div id="wkAiPrev" class="wkp-prevbox">${aiPreviewHTML(sun, '')}</div>
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button><button type="button" class="btn" id="wkAiGo" data-act="wkAiApply" disabled>이번 주에 반영</button></div>`, true);
@@ -2203,10 +2210,15 @@ function blockFormHTML() {
   const w = ui.wkEdit; const sun = weekStartOf(w.date); const d = parseDate(w.date).getDay();
   const tutor = w.kind === 'tutor';
   const b = w.block || {};
-  const title = `${w.mode === 'add' ? '＋' : '✎'} ${DOW[d]}요일 ${tutor ? '과외' : '운동'} 블록 ${w.mode === 'add' ? '더하기' : '고치기'}`;
+  const title = w.base ? `${w.mode === 'add' ? '＋' : '✎'} ${DOW[d]}요일 기본 시간표 과외 ${w.mode === 'add' ? '더하기' : '고치기'}` : `${w.mode === 'add' ? '＋' : '✎'} ${DOW[d]}요일 ${tutor ? '과외' : '운동'} 블록 ${w.mode === 'add' ? '더하기' : '고치기'}`;
   const done = !tutor && w.mode === 'edit' ? dayChecks(w.date, d, exBlocksOf(sun, d), weekPlanOf(sun))[w.i] : false;
+  const note = w.base ? `${shortDay(sun)} 주부터 계속 바뀌어요. 그 전 주는 그대로예요.` : tutor ? `${weekLabel(sun)} · "이번 주만"은 이 주에만, "이 주부터 계속"은 기본 시간표를 이 주부터 바꿔요.` : `${weekLabel(sun)}에만 바뀌어요.`;
+  const del = w.mode !== 'edit' ? '' : w.base ? '<button type="button" class="btn danger" data-act="wkBlockDel" data-scope="cont">🗑 지우기</button>'
+    : tutor ? '<button type="button" class="btn danger" data-act="wkBlockDel" data-scope="once">이번 주만 빼기</button><button type="button" class="btn danger" data-act="wkBlockDel" data-scope="cont">이 주부터 계속 빼기</button>'
+      : '<button type="button" class="btn danger" data-act="wkBlockDel" data-scope="once">지우기</button>';
+  const save = w.base || !tutor ? '<button type="submit" class="btn" value="cont">저장</button>' : '<button type="submit" class="btn" value="once">이번 주만</button><button type="submit" class="btn" value="cont">이 주부터 계속</button>'; // 첫 번째가 Enter 로 저장될 때의 기본이에요 (이번 주만)
   return `<h2>${title}</h2>
-    <p class="meta" style="margin-top:0">${esc(weekLabel(sun))}에만 바뀌어요.${tutor ? ' 기본 시간표는 그대로예요.' : ''}</p>
+    <p class="meta" style="margin-top:0">${esc(note)}</p>
     ${!tutor && w.mode === 'edit' ? `<div class="field"><label class="wb-opt wb-done"><input id="wb_done" type="checkbox"${done ? ' checked' : ''}${w.date > todayStr() ? ' disabled' : ''}> ✓ 했어요${w.date > todayStr() ? ' <span class="meta">(아직 안 온 날은 체크할 수 없어요)</span>' : ''}</label></div>` : ''}
     <form id="wkBlockForm" novalidate>
       <div class="field"><label for="wb_name">이름</label><input id="wb_name" type="text" maxlength="${tutor ? 30 : 300}" autocomplete="off" value="${esc(b.name || '')}"></div>
@@ -2215,7 +2227,7 @@ function blockFormHTML() {
       ${tutor ? `<div class="field"><label for="wb_m">방식</label><select id="wb_m"><option value="온라인"${b.m === '대면' ? '' : ' selected'}>온라인</option><option value="대면"${b.m === '대면' ? ' selected' : ''}>대면</option></select></div>`
     : `<div class="field"><label class="wb-opt"><input id="wb_opt" type="checkbox"${b.optional ? ' checked' : ''}> 선택 운동 (점선으로 보여요)</label></div>`}
       <p class="error" id="wbErr" role="alert"></p>
-      <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button>${w.mode === 'edit' ? `<button type="button" class="btn danger" data-act="wkBlockDel">${tutor ? '이 주만 지우기' : '지우기'}</button>` : ''}<button type="submit" class="btn">저장</button></div>
+      <div class="dlg-actions wk-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button>${del}${save}</div>
     </form>`;
 }
 const fromDayDlg = () => dlg.open && !!dlg.querySelector('.day-list') && ui.tab === 'week'; // 요일 머리 창에서 열었으면 끝나고 그 창으로 돌아가요
@@ -2233,11 +2245,22 @@ function openExEdit(date, i) {
   ui.wkEdit = { kind: 'ex', mode: 'edit', date, i, block: b, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
 }
+function openBaseEdit(date, id) { // [기본] 칩: 기본 시간표의 블록 고치기 (저장하면 보고 있는 주부터 계속)
+  const sun = weekStartOf(date);
+  const b = baseBlocksFor(sun).find((x) => x.id === id);
+  if (!b) return;
+  ui.wkEdit = { kind: 'tutor', base: true, mode: 'edit', date, id, block: b, fromDay: false };
+  openDlg(blockFormHTML());
+}
+function openBaseAdd(date) {
+  ui.wkEdit = { kind: 'tutor', base: true, mode: 'add', date, block: {}, fromDay: false };
+  openDlg(blockFormHTML());
+}
 function openBlockAdd(kind, date) {
   ui.wkEdit = { kind, mode: 'add', date, block: {}, fromDay: fromDayDlg() };
   openDlg(blockFormHTML());
 }
-async function saveWeekBlock() {
+async function saveWeekBlock(scope) {
   const w = ui.wkEdit; if (!w) return false;
   const err = $('#wbErr'); const fail = (m) => { if (err) err.textContent = m; return false; };
   const name = $('#wb_name').value.trim().replace(/\s+/g, ' ');
@@ -2248,17 +2271,31 @@ async function saveWeekBlock() {
   if (e && !s) return fail('끝 시간을 적으려면 시작 시간도 필요해요.');
   if (e && timeMin(e) <= timeMin(s)) return fail('끝나는 시간은 시작보다 늦어야 해요.');
   const sun = weekStartOf(w.date); const dow = parseDate(w.date).getDay();
+  let toastMsg = w.mode === 'add' ? '이 주에 블록을 더했어요.' : '이 주에 반영했어요.';
   if (tutor) {
     const m = $('#wb_m').value === '대면' ? '대면' : '온라인';
-    await updateWeekPlan(sun, (p) => {
-      if (w.mode === 'add') { p.tutor.add.push({ id: newId(), d: dow, name: name.slice(0, 30), s, e, m }); return; }
-      const added = p.tutor.add.findIndex((x) => x.id === w.id);
-      if (added >= 0) { p.tutor.add[added] = { ...p.tutor.add[added], name: name.slice(0, 30), s, e, m }; return; }
-      const base = baseBlocksFor(sun).find((x) => x.id === w.id) || {}; // 기본 시간표와 다른 칸만 "이 주만 바꾼 것"으로 적어요
-      const patch = {}; const nv = { name: name.slice(0, 30), s, e, m };
-      BLOCK_KEYS.forEach((k) => { if (nv[k] !== base[k]) patch[k] = nv[k]; });
-      if (Object.keys(patch).length) p.tutor.edit[w.id] = patch; else delete p.tutor.edit[w.id];
-    });
+    const nv = { name: name.slice(0, 30), s, e, m };
+    if (w.base || scope === 'cont') { // 기본 시간표를 보고 있는 주부터 계속 바꿔요 (그 전 주는 그대로). 이 주에만 바꿔 둔 같은 블록은 정리해서 겹치지 않게 해요
+      if (w.mode === 'add') await applyTutorBase(sun, { type: 'add', block: { id: newId(), d: dow, ...nv } });
+      else if (!w.base && planTutor(weekPlanOf(sun)).add.some((x) => x.id === w.id)) { // 이번 주만 더했던 블록 → 기본 시간표로 옮겨요
+        await updateWeekPlan(sun, (p) => { p.tutor.add = p.tutor.add.filter((x) => x.id !== w.id); });
+        await applyTutorBase(sun, { type: 'add', block: { id: w.id, d: dow, ...nv } });
+      } else {
+        await applyTutorBase(sun, { type: 'edit', id: w.id, patch: nv });
+        if (!w.base) await updateWeekPlan(sun, (p) => { delete p.tutor.edit[w.id]; });
+      }
+      toastMsg = `${shortDay(sun)} 주부터 계속 바뀌어요.`;
+    } else {
+      await updateWeekPlan(sun, (p) => {
+        if (w.mode === 'add') { p.tutor.add.push({ id: newId(), d: dow, ...nv }); return; }
+        const added = p.tutor.add.findIndex((x) => x.id === w.id);
+        if (added >= 0) { p.tutor.add[added] = { ...p.tutor.add[added], ...nv }; return; }
+        const base = baseBlocksFor(sun).find((x) => x.id === w.id) || {}; // 기본 시간표와 다른 칸만 "이 주만 바꾼 것"으로 적어요
+        const patch = {};
+        BLOCK_KEYS.forEach((k) => { if (nv[k] !== base[k]) patch[k] = nv[k]; });
+        if (Object.keys(patch).length) p.tutor.edit[w.id] = patch; else delete p.tutor.edit[w.id];
+      });
+    }
   } else {
     const nb = { name: name.slice(0, 300), kind: (w.block && w.block.kind) || EX_KIND, optional: !!$('#wb_opt').checked, s, e };
     await updateWeekPlan(sun, (p) => {
@@ -2270,17 +2307,25 @@ async function saveWeekBlock() {
   ui.wkEdit = null;
   render();
   if (w.fromDay) openDay(w.date); else closeDlg();
-  toast(w.mode === 'add' ? '이 주에 블록을 더했어요.' : '이 주에 반영했어요.', 2500);
+  toast(toastMsg, 2500);
   return true;
 }
-async function deleteWeekBlock() {
+async function deleteWeekBlock(scope) {
   const w = ui.wkEdit; if (!w || w.mode !== 'edit') return;
   const sun = weekStartOf(w.date); const dow = parseDate(w.date).getDay();
+  let toastMsg = '이 주에서 지웠어요.';
   if (w.kind === 'tutor') {
-    await updateWeekPlan(sun, (p) => {
-      if (p.tutor.add.some((x) => x.id === w.id)) p.tutor.add = p.tutor.add.filter((x) => x.id !== w.id);
-      else { if (!p.tutor.del.includes(w.id)) p.tutor.del.push(w.id); delete p.tutor.edit[w.id]; }
-    });
+    const inAdd = !w.base && planTutor(weekPlanOf(sun)).add.some((x) => x.id === w.id);
+    if (w.base || (scope === 'cont' && !inAdd)) { // 기본 시간표에서 이 주부터 계속 빼요
+      await applyTutorBase(sun, { type: 'del', id: w.id });
+      if (!w.base) await updateWeekPlan(sun, (p) => { p.tutor.del = p.tutor.del.filter((x) => x !== w.id); delete p.tutor.edit[w.id]; });
+      toastMsg = `${shortDay(sun)} 주부터 계속 뺐어요.`;
+    } else {
+      await updateWeekPlan(sun, (p) => {
+        if (inAdd) p.tutor.add = p.tutor.add.filter((x) => x.id !== w.id);
+        else { if (!p.tutor.del.includes(w.id)) p.tutor.del.push(w.id); delete p.tutor.edit[w.id]; }
+      });
+    }
   } else {
     const old = exBlocksOf(sun, dow);
     const map = old.map((_, k) => (k === w.i ? -1 : k > w.i ? k - 1 : k));
@@ -2292,17 +2337,18 @@ async function deleteWeekBlock() {
   ui.wkEdit = null;
   render();
   if (w.fromDay) openDay(w.date); else closeDlg();
-  toast('이 주에서 지웠어요.', 2500);
+  toast(toastMsg, 2500);
 }
-// ↺ 이번 주를 기본 시간표로: 이 주만 바꾼 과외·📥 로 붙여 넣은 운동·메모를 지워요 (체크는 그대로, 저장돼 있는 몸무게도 그대로)
+// ↺ 과외를 기본대로: 이 주에만 바꾼 과외(고친 것 · 더한 것 · 뺀 것)만 되돌려요. 운동·메모·체크는 건드리지 않아요
 async function resetWeekToBase() {
   const sun = ui.weekStart || weekStartOf(todayStr());
-  if (!planUsed(weekPlanOf(sun))) return;
-  if (!confirm(`${weekLabel(sun)}을 기본 시간표로 되돌릴까요?\n이 주에만 바꿔 둔 과외·붙여 넣은 운동·메모가 지워져요. (운동 체크는 그대로예요)`)) return;
-  await updateWeekPlan(sun, (p) => { p.tutor = { add: [], edit: {}, del: [] }; p.ex = {}; p.memo = ''; });
+  if (!tutorUsed(weekPlanOf(sun))) return;
+  if (!confirm(`${weekLabel(sun)}의 과외를 기본 시간표대로 되돌릴까요?\n이 주에만 바꿔 둔 과외가 지워져요. (운동·메모·체크는 그대로예요)`)) return;
+  await updateWeekPlan(sun, (p) => { p.tutor = { add: [], edit: {}, del: [] }; });
   render();
-  toast('이 주를 기본 시간표로 되돌렸어요.', 2500);
+  toast('이 주의 과외를 기본 시간표대로 되돌렸어요.', 2500);
 }
+const tutorUsed = (p) => { const t = planTutor(p); return !!(t.add.length || t.del.length || Object.keys(t.edit).length); }; // 이번 주만 바꾼 과외가 있나
 
 /* ---- 기본 시간표 붙여 넣기 (🗓 화면의 버튼 · ⚙ 설정). 같은 시간표 글을 읽어요 ---- */
 const blockText = (b) => `${b.name} ${blockTime(b)} ${b.m || EX_KIND}${b.optional ? ' 선택' : ''}`.replace(/\s+/g, ' ');
@@ -2314,16 +2360,17 @@ function pastePreviewHTML(text) {
   return `${rows.length ? `<ul class="wkp-prev">${rows.map((x) => `<li><b>${x.w}</b> ${x.d.tutors.slice().sort((a, b) => timeMin(a.s) - timeMin(b.s)).map((b) => esc(blockText(b))).join(' · ')}</li>`).join('')}</ul>` : ''}
     ${ps.bad.map((b) => `<p class="wkp-bad">읽지 못한 줄: ${esc(b.line)}<br><span>${esc(b.why)} — 이 줄은 건너뛰어요</span></p>`).join('')}
     ${c.tutors ? `<p class="meta">과외 ${c.tutors}개를 넣어요.</p>` : '<p class="meta">넣을 과외가 아직 없어요.</p>'}
-    <p class="meta">운동 줄은 읽지 않아요(운동은 📥로).</p>`;
+    <p class="meta">운동 줄은 읽지 않아요(운동은 [이번 주]의 📥로).</p>`;
 }
+const viewSun = () => weekKey(ui.weekStart || '') || weekStartOf(todayStr()); // 🗓 · 🧘 에서 보고 있는 주의 일요일
 function pasteBoxHTML() {
-  const has = !tutorBaseEmpty();
+  const sun = viewSun();
   return `<section class="card wkp-paste" id="wkPaste">
     <h3>📋 기본 시간표 붙여 넣기</h3>
-    <p class="meta">한 줄에 한 요일, 블록은 " / "로 나눠요. 과외는 "이름 9:00~11:00 온라인"처럼 써요. 클로드가 써 준 시간표 글도 그대로 읽고, 과외만 넣어요(운동 줄은 읽지 않아요). (이 주에만 반영하거나 운동까지 넣으려면 🗓 화면의 📥 를 써요)</p>
+    <p class="meta">한 줄에 한 요일, 블록은 " / "로 나눠요. 과외는 "이름 9:00~11:00 온라인"처럼 써요. 클로드가 써 준 시간표 글도 그대로 읽고, 과외만 넣어요(운동 줄은 읽지 않아요). (이 주에만 반영하거나 운동까지 넣으려면 [이번 주]의 📥 를 써요)</p>
     <textarea id="wkPasteText" rows="6" spellcheck="false" aria-label="기본 시간표" placeholder="월: 학생A 9:00~11:00 온라인 / 학생B 18:00~19:00 대면&#10;화: 학생C 16:00~17:30 온라인&#10;일: 휴식"></textarea>
     <div id="wkPastePrev" class="wkp-prevbox"></div>
-    ${has ? `<div class="wkp-how" role="radiogroup" aria-label="이미 있는 시간표"><label class="wkp-pill"><input type="radio" name="wkHow" value="merge" checked> 합치기</label><label class="wkp-pill"><input type="radio" name="wkHow" value="over"> 덮어쓰기</label></div><p class="meta">덮어쓰면 이번 주부터 새 과외 시간표가 되고, 지난 주 과외는 그대로예요.</p>` : ''}
+    <p class="meta wkp-from">${tutorBaseEmpty() ? '아직 기본 시간표가 없어서 모든 주에 적용돼요.' : `${esc(shortDay(sun))} 주부터 이 시간표로 바꿔요. 그 전 주는 그대로예요.`}</p>
     <div class="row"><button type="button" class="btn" id="wkPasteGo" data-act="wkPasteApply" disabled>이대로 넣기</button><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>
   </section>`;
 }
@@ -2341,18 +2388,13 @@ async function applyPaste() {
   if (!ta) return;
   const ps = parseSchedule(ta.value);
   if (!pasteBlocks(ps)) return;
-  const how = (wkq('input[name=wkHow]:checked') || {}).value || 'merge';
-  const thisWeek = weekStartOf(todayStr());
+  const sun = viewSun();
   const tutors = ps.days.flatMap((d) => d.tutors);
   const first = tutorBaseEmpty();
   const vs = tutorVersions();
   if (tutors.length) {
     if (first) await setConfig('tutorBase', [{ from: '', blocks: tutors }]); // 처음 넣는 시간표는 모든 주에 적용돼요
-    else if (how === 'over') await setConfig('tutorBase', [...vs.filter((v) => v.from < thisWeek), { from: thisWeek, blocks: tutors }]);
-    else {
-      const cur = baseBlocksFor(thisWeek);
-      for (const b of tutors) if (!cur.some((c) => sameOp(c, b))) await applyTutorBase(thisWeek, { type: 'add', block: b });
-    }
+    else await setConfig('tutorBase', [...vs.filter((v) => v.from < sun), { from: sun, blocks: tutors }]); // 보고 있는 주부터 이 시간표로 (그 전 주는 그대로)
   }
   if (dlg.open) closeDlg();
   render();
@@ -2364,9 +2406,12 @@ async function applyPaste() {
 const WKT_PX = 48;                                  // 한 시간의 높이(px)
 const WKT_EX_MIN = 30; const WKT_TUTOR_MIN = 60;    // 끝 시간이 없는 운동은 30분, 과외는 60분으로 그려요
 function weekTableHTML(model, opts = {}) {
-  const { sun, days, memo } = model;
+  const { sun } = model;
+  const days = model.days.map((d) => ({ ...d, ex: [] })); // 🗓 표에는 과외만 나와요 (운동은 🧘 운동 탭 · 그 주 메모도 거기에)
+  const base = opts.mode === 'base'; // [기본] 칩: 기본 시간표를 고치는 표
+  const tAct = base ? 'wkBaseBlock' : 'wkTutor';
   const today = todayStr();
-  const checks = opts.checks || {};
+  const checks = {};
   // 시간 범위: 그 주 블록 중 가장 이른 시각 ~ 가장 늦은 시각을 정시로 (블록이 없으면 9~22시)
   const items = days.map((day, d) => [
     ...day.tutors.filter((b) => timeMin(b.s) !== null).map((b) => ({ d, kind: 't', b, s: timeMin(b.s), e: timeMin(b.e) !== null ? timeMin(b.e) : timeMin(b.s) + WKT_TUTOR_MIN })),
@@ -2401,19 +2446,19 @@ function weekTableHTML(model, opts = {}) {
       const label = `${DOW[d]}요일 ${x.b.name} ${time}${x.kind === 't' ? ` ${x.b.m}` : `${x.b.optional ? ' 선택' : ''} 운동`}${on ? ' (했어요)' : ''}`;
       const style = `top:${top}px;height:${hgt}px;left:calc(${x.lane} * 100% / ${x.n});width:calc(100% / ${x.n} - 2px)`;
       const inner = `<span class="wkt-n">${esc(name)}</span>${hgt >= 36 ? `<span class="wkt-t">${esc(time).replace('~', '~<wbr>')}</span>` : ''}${on ? '<span class="wkt-ck" aria-hidden="true">✓</span>' : ''}`;
-      const c = `wkt-b ${cls(x)}${hgt < 36 ? ' short' : hgt < 60 ? ' mid' : ''}`;
-      if (!opts.preview && x.kind === 't') return `<button type="button" class="${c}" style="${style}" data-act="wkTutor" data-date="${date}" data-id="${esc(x.b.id)}" title="${esc(label)} · 눌러서 고치기" aria-label="${esc(`${label}, 눌러서 고치기`)}">${inner}</button>`; // 과외 블록: 눌러서 고치기
+      const c = `wkt-b ${cls(x)}${hgt < 36 ? ' short' : hgt < 60 ? ' mid' : ''}${x.kind === 't' && x.b.once && !base ? ' once' : ''}`; // 이번 주만 바꾼 과외는 점선 테두리
+      if (!opts.preview && x.kind === 't') return `<button type="button" class="${c}" style="${style}" data-act="${tAct}" data-date="${date}" data-id="${esc(x.b.id)}" title="${esc(label)} · 눌러서 고치기" aria-label="${esc(`${label}, 눌러서 고치기`)}">${inner}</button>`; // 과외 블록: 눌러서 고치기
       return !opts.preview && x.kind === 'x' // 운동 블록: 눌러서 했어요 체크 (아직 안 온 날은 눌러도 안 돼요) · 길게 누르거나 ✎ 로 고치기
         ? `<button type="button" class="${c}${on ? ' on' : ''}" style="${style}" data-act="wkEx" data-date="${date}" data-i="${x.i}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(label)}" aria-label="${esc(label)}">${inner}</button>`
         : `<div class="${c}" style="${style}" title="${esc(label)}">${inner}</div>`;
     }).join('');
     const empty = !day.tutors.length && !day.ex.length;
-    return `<div class="wkt-col${date === today ? ' today' : ''}" data-d="${d}" style="height:${H}px">${blocks}${empty ? '<span class="wkt-rest">휴식</span>' : ''}</div>`;
+    return `<div class="wkt-col${date === today ? ' today' : ''}${base && !opts.preview ? ' addable' : ''}" data-d="${d}" style="height:${H}px"${base && !opts.preview ? ` data-act="wkBaseAdd" data-date="${date}" title="눌러서 ${DOW[d]}요일에 과외 더하기"` : ''}>${blocks}${empty ? '<span class="wkt-rest">휴식</span>' : ''}</div>`;
   }).join('');
   const untimed = days.map((day, d) => [...day.ex.map((b, i) => ({ ...b, ex: true, i })).filter((b) => timeMin(b.s) === null), ...day.tutors.filter((b) => timeMin(b.s) === null)]);
   const chip = (b, d) => { // 시간이 없는 블록: 작은 이름표 (운동은 눌러서 했어요 체크)
     const nm = esc((b.name || '').split('(')[0].trim() || b.name);
-    if (!b.ex) return opts.preview ? `<span class="wkt-chip ${b.m === '대면' ? 't-face' : 't-online'}">${nm}</span>` : `<button type="button" class="wkt-chip ${b.m === '대면' ? 't-face' : 't-online'}" data-act="wkTutor" data-date="${addDays(sun, d)}" data-id="${esc(b.id)}" title="눌러서 고치기">${nm}</button>`;
+    if (!b.ex) return opts.preview ? `<span class="wkt-chip ${b.m === '대면' ? 't-face' : 't-online'}">${nm}</span>` : `<button type="button" class="wkt-chip ${b.m === '대면' ? 't-face' : 't-online'}" data-act="${tAct}" data-date="${addDays(sun, d)}" data-id="${esc(b.id)}" title="눌러서 고치기">${nm}</button>`;
     const on = checks[`${d}:${b.i}`]; const date = addDays(sun, d);
     const label = `${DOW[d]}요일 ${b.name}${b.optional ? ' 선택' : ''} 운동${on ? ' (했어요)' : ''}`;
     return opts.preview
@@ -2423,17 +2468,17 @@ function weekTableHTML(model, opts = {}) {
   const anyUntimed = untimed.some((u) => u.length);
   const heads = Array.from({ length: 7 }, (_, d) => { // 요일 머리를 누르면 그날의 기록 창(캘린더의 날짜 창)이 열려요: 운동 기록 보기 · 더하기 · 고치기 · 지우기
     const date = addDays(sun, d); const x = parseDate(date); const inner = `<span>${DOW[d]}</span><small>${x.getMonth() + 1}/${x.getDate()}</small>`; const cls = `wkt-head d${d}${date === today ? ' today' : ''}`;
+    if (base && !opts.preview) return `<button type="button" class="${cls}" data-act="wkBaseAdd" data-date="${date}" title="눌러서 ${DOW[d]}요일에 과외 더하기" aria-label="${esc(`${DOW[d]}요일에 과외 더하기`)}">${inner}</button>`;
     return opts.preview ? `<div class="${cls}">${inner}</div>` : `<button type="button" class="${cls}" data-act="calDay" data-date="${date}" title="눌러서 이 날의 기록 보기" aria-label="${esc(`${DOW[d]}요일 ${x.getMonth() + 1}월 ${x.getDate()}일 기록 보기`)}">${inner}</button>`;
   }).join('');
-  const legend = opts.preview ? '' : `<div class="wkt-legend" aria-label="범례"><span class="wkt-lg"><i class="wkt-sw t-online"></i>온라인 과외</span><span class="wkt-lg"><i class="wkt-sw t-face"></i>대면 과외</span><span class="wkt-lg"><i class="wkt-sw ex"></i>운동</span></div>`;
+  const legend = opts.preview ? '' : `<div class="wkt-legend" aria-label="범례"><span class="wkt-lg"><i class="wkt-sw t-online"></i>온라인 과외</span><span class="wkt-lg"><i class="wkt-sw t-face"></i>대면 과외</span></div>`;
   const axis = Array.from({ length: h1 - h0 + 1 }, (_, i) => `<span style="top:${i * WKT_PX}px">${h0 + i}</span>`).join('');
   return `<div class="wkt-scroll"><div class="wkt" style="--wkt-h:${WKT_PX}px">
     <div class="wkt-corner"></div>${heads}
     <div class="wkt-axis" style="height:${H}px">${axis}</div>${cols}
     ${anyUntimed ? `<div class="wkt-axis2">시간 미정</div>${untimed.map((u, d) => `<div class="wkt-un">${u.map((b) => chip(b, d)).join('')}</div>`).join('')}` : ''}
   </div></div>
-  ${legend}
-  ${memoHTML(memo)}`;
+  ${legend}`;
 }
 
 // 그 주 메모를 보여 줄 때만 "; " 로 나눠서 한 줄에 하나씩 보여요. (저장된 메모는 지금처럼 한 줄 글자 그대로예요)
@@ -2466,6 +2511,25 @@ function memoHTML(memo) {
 
 /* ---- 화면 (항상 표) ---- */
 const weekBtnHTML = (here) => `<button type="button" class="btn ghost small cal-today-btn${here ? ' dim' : ''}" data-act="wkToday"${here ? ' aria-disabled="true"' : ''} title="${here ? '지금 이번 주예요' : '이번 주로 가요'}" aria-label="이번 주로 가기">이번 주</button>`;
+// 🗓 · 🧘 의 맨 위 줄: [이번 주] ◀ 주 ▶ (🗓 에는 옆에 [이번 주] [기본] 칩)
+const weekNavHTML = (sun, thisWeek, chips = '') => `<div class="wkp-head">
+      ${weekBtnHTML(sun === thisWeek)}
+      <button type="button" class="btn ghost small" data-act="wkShift" data-d="-1" aria-label="지난 주">◀</button>
+      <strong class="wkp-label">${esc(weekLabel(sun))}</strong>
+      <button type="button" class="btn ghost small" data-act="wkShift" data-d="1" aria-label="다음 주">▶</button>${chips}
+    </div>`;
+// 🗓 [이번 주] [기본] 칩: 고른 칩은 이 기기에만 기억해요 (다른 탭에 갔다 오면 [이번 주])
+const WEEKMODE_KEY = 'my-journal.weekMode';
+function weekMode() {
+  if (!ui.weekMode) { let v = 'week'; try { v = localStorage.getItem(WEEKMODE_KEY) === 'base' ? 'base' : 'week'; } catch (e) { /* 괜찮아요 */ } ui.weekMode = v; }
+  return ui.weekMode;
+}
+function setWeekMode(m) {
+  ui.weekMode = m === 'base' ? 'base' : 'week';
+  try { localStorage.setItem(WEEKMODE_KEY, ui.weekMode); } catch (e) { /* 괜찮아요 */ }
+}
+// 기본 시간표를 표로 보여 줄 모양 (보고 있는 주에 적용되는 과외만)
+const baseModel = (sun) => { const bl = baseBlocksFor(sun); return { sun, days: Array.from({ length: 7 }, (_, d) => ({ tutors: bl.filter((b) => b.d === d), ex: [] })), memo: '' }; };
 
 function renderWeek() {
   const today = todayStr();
@@ -2473,25 +2537,107 @@ function renderWeek() {
   const thisWeek = weekStartOf(today);
   const sun = weekKey(ui.weekStart || '') || thisWeek;
   ui.weekStart = sun === thisWeek ? null : sun;
+  const base = weekMode() === 'base';
   const plan = weekPlanOf(sun);
-  const checks = {};
-  for (let d = 0; d < 7; d += 1) dayChecks(addDays(sun, d), d, exBlocksOf(sun, d), plan).forEach((on, i) => { if (on) checks[`${d}:${i}`] = true; });
+  const chips = `<span class="chips wkp-modes" role="group" aria-label="보기">${[['week', '이번 주'], ['base', '기본']].map(([id, t]) => `<button type="button" class="chip${(base ? 'base' : 'week') === id ? ' active' : ''}" data-act="wkMode" data-id="${id}" aria-pressed="${(base ? 'base' : 'week') === id}">${t}</button>`).join('')}</span>`;
+  if (base) {
+    view.innerHTML = `
+    <h2 class="page-title">이번 주</h2>
+    <p class="page-sub">기본 시간표를 표에서 바로 고쳐요. 블록을 누르면 고치고, 요일 머리나 빈 칸을 누르면 그 요일에 더해요. 바꾸면 지금 보고 있는 주부터 계속 적용돼요.</p>
+    ${weekNavHTML(sun, thisWeek, chips)}
+    <p class="meta wkp-basenote">${tutorBaseEmpty() ? '기본 시간표 · 아직 없어요. 처음 넣으면 모든 주에 적용돼요' : `기본 시간표 · ${esc(shortDay(sun))} 주부터 고쳐요`}</p>
+    ${weekTableHTML(baseModel(sun), { mode: 'base' })}
+    <div class="row wkp-tools"><button type="button" class="btn ghost small" data-act="wkPaste">📋 기본 시간표 붙여 넣기</button></div>`;
+    return;
+  }
   view.innerHTML = `
     <h2 class="page-title">이번 주</h2>
-    <p class="page-sub">과외 일정과 이번 주 운동을 한눈에 봐요. 운동은 📥로 붙여 넣은 것만 표에 보이고, 했다고 블록을 한 번만 눌러요. 과외 블록을 누르면 이 주만 고칠 수 있고, 운동 블록은 길게 누르거나 ✎ 로 고쳐요. 그날 기록을 보거나 블록을 더하려면 요일 머리(일·월…)를 눌러요. 점수나 비교는 없어요.</p>
+    <p class="page-sub">과외 일정을 한눈에 봐요. 과외 블록을 누르면 고칠 수 있어요(이번 주만 · 이 주부터 계속). 점선 테두리는 이번 주만 바뀐 과외예요. 운동과 그 주 메모는 🧘 운동 탭에서 봐요. 그날 기록을 보려면 요일 머리(일·월…)를 눌러요. 점수나 비교는 없어요.</p>
     <p class="meta wkp-hours">${esc(tutorTotalText(tutorTotals(sun)))}</p>
-    <div class="wkp-head">
-      ${weekBtnHTML(sun === thisWeek)}
-      <button type="button" class="btn ghost small" data-act="wkShift" data-d="-1" aria-label="지난 주">◀</button>
-      <strong class="wkp-label">${esc(weekLabel(sun))}</strong>
-      <button type="button" class="btn ghost small" data-act="wkShift" data-d="1" aria-label="다음 주">▶</button>
-    </div>
+    ${weekNavHTML(sun, thisWeek, chips)}
     <div class="wkp-bar">
       <button type="button" class="btn ghost small" data-act="wkAi">📥 클로드 시간표 붙여 넣기</button>
       <button type="button" class="btn ghost small" data-act="wkText">✎ 시간표 글 고치기</button>
     </div>
-    ${weekTableHTML(weekModel(sun, null), { checks })}
-    <div class="row wkp-tools"><button type="button" class="btn ghost small" data-act="wkPaste">📋 기본 시간표 붙여 넣기</button>${planUsed(plan) ? '<button type="button" class="btn ghost small" data-act="wkReset">↺ 이번 주를 기본 시간표로</button>' : ''}</div>`;
+    ${weekTableHTML(weekModel(sun, null), {})}
+    <div class="row wkp-tools">${tutorUsed(plan) ? '<button type="button" class="btn ghost small" data-act="wkReset">↺ 과외를 기본대로</button>' : ''}</div>`;
+}
+
+/* ---------------------------------------------------------------------
+   🧘 운동 탭: 그 주(일~토)의 운동 블록을 요일별 목록으로 보고, 줄을 눌러 "했어요" 체크해요.
+   체크는 🗓 표에서 하던 것과 같은 함수(setWeekCheck)라서 운동 기록(plan = 블록 번호+1)이 생기고 지워져요. 몸무게·횟수·연속 같은 숫자는 없어요.
+   --------------------------------------------------------------------- */
+function wxRowHTML(sun, d, b, i, on) {
+  const date = addDays(sun, d); const future = date > todayStr();
+  const meta = [blockTime(b), b.optional ? '선택' : ''].filter(Boolean).join(' · ');
+  const hit = on ? (dayAssign(date, exBlocksOf(sun, d))[i] || [])[0] : null;
+  return `<div class="wx-row${on ? ' on' : ''}${b.optional ? ' opt' : ''}" data-wx="${d}:${i}">
+    <div class="wx-line">
+      <button type="button" class="wx-main" data-act="wkExCheck" data-date="${date}" data-i="${i}" aria-pressed="${on ? 'true' : 'false'}"${future ? ' disabled aria-disabled="true"' : ''} aria-label="${esc(`${DOW[d]}요일 ${b.name}${meta ? ` ${meta}` : ''}${on ? ' (했어요)' : ''}`)}"><span class="wx-box" aria-hidden="true">${on ? '✓' : ''}</span><span class="wx-name">${esc(b.name)}</span>${meta ? `<span class="wx-meta">${esc(meta)}</span>` : ''}</button>
+      <button type="button" class="btn ghost small wx-edit" data-act="wkExEdit" data-date="${date}" data-i="${i}" aria-label="${esc(`${b.name} 고치기`)}">✎</button>
+    </div>
+    ${hit ? `<textarea class="wx-note autogrow" rows="1" maxlength="400" data-wx-memo data-date="${date}" data-i="${i}" aria-label="${esc(`${b.name} 메모`)}" placeholder="메모 - 선택">${esc(hit.memo || '')}</textarea>` : ''}
+  </div>`;
+}
+function wxCardsHTML() {
+  const list = ofType('workout').filter((r) => !r.sample).sort(byNewest);
+  return dayGroupedHTML(list, (r) => workoutCard(r).replace('<div class="card" data-rid=', `<div class="card clickable" data-act="edit" data-type="workout" data-id="${esc(r.id)}" data-rid=`), EMPTY_TEXT.workout);
+}
+function renderWorkout() {
+  const today = todayStr();
+  view.dataset.today = today;
+  const thisWeek = weekStartOf(today);
+  const sun = weekKey(ui.weekStart || '') || thisWeek;
+  ui.weekStart = sun === thisWeek ? null : sun;
+  const plan = weekPlanOf(sun);
+  const memo = planMemo(plan);
+  const days = Array.from({ length: 7 }, (_, d) => {
+    const date = addDays(sun, d); const blocks = exBlocksOf(sun, d);
+    const checks = dayChecks(date, d, blocks, plan);
+    const x = parseDate(date);
+    return `<section class="wx-day${date === today ? ' today' : ''}${blocks.length ? '' : ' none'}" data-d="${d}">
+      <div class="wx-dh"><b class="wx-dow d${d}">${DOW[d]}</b><small>${x.getMonth() + 1}/${x.getDate()}</small><button type="button" class="btn ghost small wx-add" data-act="wkAddEx" data-date="${date}" aria-label="${esc(`${DOW[d]}요일에 운동 블록 더하기`)}">＋</button></div>
+      ${blocks.map((b, i) => wxRowHTML(sun, d, b, i, checks[i])).join('')}
+    </section>`;
+  }).join('');
+  view.innerHTML = `
+    <h2 class="page-title">운동</h2>
+    <p class="page-sub">이번 주 운동을 줄마다 눌러 체크해요. 운동 블록은 🗓 이번 주의 📥로 붙여 넣으면 여기에 나와요.</p>
+    ${weekNavHTML(sun, thisWeek)}
+    ${memo ? `<button type="button" class="card wx-memo" data-act="wkMemoEdit" aria-label="이 주 메모 고치기">${memoHTML(memo)}</button>` : ''}
+    <div class="wx-days">${days}</div>
+    <h3 class="wx-h">지난 운동 기록</h3>
+    <div id="wxCards">${wxCardsHTML()}</div>`;
+}
+// 이 주 메모 고치기 (눌러서)
+function openWeekMemo() {
+  const sun = viewSun();
+  openDlg(`<h2>✎ ${esc(weekLabel(sun))} 메모</h2>
+    <form id="wkMemoForm" novalidate>
+      <div class="field"><textarea id="wkMemoText" class="autogrow" rows="3" maxlength="600" aria-label="이 주 메모">${esc(planMemo(weekPlanOf(sun)))}</textarea><div class="hint">비우면 메모가 지워져요.</div></div>
+      <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button><button type="submit" class="btn">저장</button></div>
+    </form>`);
+  autosizeAll();
+}
+async function saveWeekMemo() {
+  const sun = viewSun();
+  const v = String($('#wkMemoText').value || '').trim();
+  await updateWeekPlan(sun, (p) => { p.memo = v; });
+  closeDlg(); render();
+  toast('메모를 저장했어요.', 2000);
+}
+// 체크된 줄의 메모: 입력이 끝나면 그 운동 기록의 memo 에 저장해요 (비워도 돼요)
+async function saveWxMemo(ta) {
+  const date = ta.dataset.date; const i = Number(ta.dataset.i);
+  const dow = parseDate(date).getDay(); const sun = weekStartOf(date);
+  const r = (dayAssign(date, exBlocksOf(sun, dow))[i] || [])[0];
+  if (!r) return;
+  const v = ta.value.trim();
+  if ((r.memo || '') === v) return;
+  const next = { ...r, memo: v, updatedAt: Date.now() };
+  if (!v) delete next.memo;
+  await saveRecord(next);
+  const box = $('#wxCards'); if (box) box.innerHTML = wxCardsHTML();
 }
 
 /* ---------------------------------------------------------------------
@@ -2834,8 +2980,8 @@ function openDay(date) {
     <div class="day-list">${cards.join('')}${!list.length ? '<div class="empty">기록이 없어요.</div>' : ''}${routineSec}${lessonSec}</div>
     <div class="label" style="margin:14px 0 6px">이 날짜에 기록 더하기</div>
     <div class="row actions-row">${add}</div>
-    ${ui.tab === 'week' ? `    <div class="label" style="margin:14px 0 6px">이 요일 시간표에 블록 더하기 <span class="meta">(이 주에만)</span></div>
-    <div class="row actions-row"><button type="button" class="btn ghost small" data-act="wkAddTutor" data-date="${date}">＋ 이 요일에 과외 블록</button><button type="button" class="btn ghost small" data-act="wkAddEx" data-date="${date}">＋ 이 요일에 운동 블록</button></div>` : ''}
+    ${ui.tab === 'week' ? `    <div class="label" style="margin:14px 0 6px">이 요일 시간표에 과외 블록 더하기</div>
+    <div class="row actions-row"><button type="button" class="btn ghost small" data-act="wkAddTutor" data-date="${date}">＋ 이 요일에 과외 블록</button></div>` : ''}
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`, true);
 }
 
@@ -5506,7 +5652,7 @@ document.addEventListener('click', async (e) => {
     case 'tab':
       if (ui.tab !== id && !(await confirmLeaveNote())) break; // 저장하지 않은 한 줄이 있으면 물어봐요
       if (ui.tab !== id && !(await confirmLeaveLang())) break;
-      if (ui.tab !== id) { ui.vnView = 'records'; ui.econView = 'routine'; ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; ui.weekStart = null; } // 다른 메뉴에서 들어오면 늘 첫 칩(기록)부터 (🗓 이번 주는 이번 주부터)
+      if (ui.tab !== id) { ui.vnView = 'records'; ui.econView = 'routine'; ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; ui.weekStart = null; setWeekMode('week'); } // 다른 메뉴에서 들어오면 늘 첫 칩(기록)부터 (🗓 이번 주는 이번 주부터)
       ui.tab = id; ui.query = '';
       render(); window.scrollTo(0, 0); break;
     case 'setView': ui[el.dataset.key] = id; if (el.dataset.key === 'econView') { ui.termAdding = false; ui.termEdit = null; ui.termQuery = ''; } render(); break;
@@ -5522,10 +5668,15 @@ document.addEventListener('click', async (e) => {
     case 'wkToday': if (ui.weekStart) { ui.weekStart = null; render(); } break; // 🗓 [이번 주] (이미 이번 주면 아무 일도 없어요)
     case 'wkPaste': openDlg(`<h2>📋 기본 시간표 붙여 넣기</h2>${pasteBoxHTML()}`, true); syncPasteBox(); break;
     case 'wkTutor': openTutorEdit(el.dataset.date, el.dataset.id); break;
-    case 'wkEx': openExEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
+    case 'wkMode': setWeekMode(id); render(); break; // 🗓 [이번 주] [기본] 칩
+    case 'wkBaseBlock': openBaseEdit(el.dataset.date, el.dataset.id); break;
+    case 'wkBaseAdd': openBaseAdd(el.dataset.date); break;
+    case 'wkExCheck': await setWeekCheck(el.dataset.date, Number(el.dataset.i || 0), el.getAttribute('aria-pressed') !== 'true'); break; // 🧘 운동 탭: 줄을 눌러 체크
+    case 'wkExEdit': openExEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
+    case 'wkMemoEdit': openWeekMemo(); break;
     case 'wkAddTutor': openBlockAdd('tutor', el.dataset.date); break;
     case 'wkAddEx': openBlockAdd('ex', el.dataset.date); break;
-    case 'wkBlockDel': await deleteWeekBlock(); break;
+    case 'wkBlockDel': await deleteWeekBlock(el.dataset.scope); break;
     case 'wkText': openWeekAi(true); break;
     case 'wkAi': openWeekAi(); break;
     case 'wkAiApply': await applyWeekAi(); break;
@@ -5735,7 +5886,8 @@ document.addEventListener('submit', (e) => {
   else if (f.id === 'clForm') { e.preventDefault(); once(f, () => saveClaudeSettings()); }
   else if (f.id === 'fbEditForm') { e.preventDefault(); once(f, () => saveFeedbackEdit(f)); }
   else if (f.id === 'bookAddForm') { e.preventDefault(); once(f, () => addBook(f.elements[0].value)); }
-  else if (f.id === 'wkBlockForm') { e.preventDefault(); once(f, () => saveWeekBlock()); }
+  else if (f.id === 'wkBlockForm') { e.preventDefault(); const sc = e.submitter && e.submitter.value; once(f, () => saveWeekBlock(sc)); }
+  else if (f.id === 'wkMemoForm') { e.preventDefault(); once(f, () => saveWeekMemo()); }
   else if (f.id === 'langAddForm') { e.preventDefault(); once(f, async () => { await addLanguage(f.elements.name.value, f.elements.label.value); if (!$('#langMsg') || !$('#langMsg').textContent) { const a = $('#langAddForm'); if (a) a.reset(); } }); }
   else if (f.id === 'langForm') { e.preventDefault(); once(f, () => saveLangForm(f)); }
   else if (f.id === 'rtNoteForm') { e.preventDefault(); once(f, () => saveRoutineNote(f.dataset.date)); }
@@ -5745,6 +5897,7 @@ document.addEventListener('submit', (e) => {
 
 document.addEventListener('change', async (e) => {
   const t = e.target;
+  if ('wxMemo' in t.dataset) { await saveWxMemo(t); return; }
   if ('lesson' in t.dataset && t.type === 'checkbox') { await toggleLesson(t.dataset.date, t.checked); return; }
   if (t.dataset.routine && t.type === 'checkbox') { await setRoutineCheck(t.dataset.date, t.dataset.routine, t.checked); }
   if (t.id === 'wb_done' && ui.wkEdit && ui.wkEdit.kind === 'ex') { // 고치기 창 맨 위의 "했어요" 체크: 바로 저장돼요
@@ -5928,7 +6081,7 @@ document.addEventListener('focusin', (e) => {
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && (ui.tab === 'cal' || ui.tab === 'econ' || ui.tab === 'week') && !dlg.open && view.dataset.today && view.dataset.today !== todayStr()) render();
+  if (!document.hidden && (ui.tab === 'cal' || ui.tab === 'econ' || ui.tab === 'week' || ui.tab === 'workout') && !dlg.open && view.dataset.today && view.dataset.today !== todayStr()) render();
 });
 
 start().catch((err) => {

@@ -909,3 +909,41 @@ textarea.rt-note-in { font: inherit; }
 .lang-row input[type=text], .lang-name-in, .lang-label-in, .lang-add input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
 .lesson-line { margin: 4px 0 10px; }
 .day-lesson { padding: 6px 12px; }
+
+/* 🗓 [이번 주] [기본] 칩 · 이번 주만 바뀐 과외(점선) · 기본 시간표 표 */
+.wkp-modes { display: inline-flex; flex-wrap: nowrap; gap: 6px; margin: 0; }
+.wkp-modes .chip { min-height: 44px; }
+.wkp-basenote { margin: 0 0 8px; }
+.wkp-from { margin: 4px 0 8px; }
+.wkt-b.t-online.once, .wkt-b.t-face.once { border: 1.5px dashed var(--muted); }
+.wkt-col.addable { cursor: pointer; }
+.wk-actions { flex-wrap: wrap; }
+.wk-actions .btn { min-height: 44px; }
+
+/* 🧘 운동 탭 */
+.wx-memo { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; margin: 0 0 12px; }
+.wx-days { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; }
+.wx-day { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); padding: 6px 10px; min-width: 0; }
+.wx-day.today { box-shadow: inset 0 0 0 2px var(--teal); }
+.wx-day.none { background: transparent; }
+.wx-day.none .wx-dow, .wx-day.none small { opacity: .55; }
+.wx-dh { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.wx-dow { font-size: 1rem; }
+.wx-dow.d0 { color: var(--red); }
+.wx-dow.d6 { color: var(--purple); }
+.wx-dh small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.wx-add { margin-left: auto; min-width: 44px; min-height: 44px; }
+.wx-row { margin: 0 0 6px; min-width: 0; }
+.wx-line { display: flex; align-items: stretch; gap: 6px; min-width: 0; }
+.wx-main { flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; text-align: left; font: inherit; color: var(--ex-ink); background: var(--ex-soft); border: 1.5px solid var(--ex); border-radius: 10px; cursor: pointer; }
+.wx-row.opt .wx-main { border-style: dashed; }
+.wx-main:disabled { cursor: default; opacity: .6; }
+.wx-row.on .wx-main { font-weight: 700; }
+.wx-box { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--ex); border-radius: 6px; background: var(--card); font-weight: 800; }
+.wx-name { min-width: 0; overflow-wrap: anywhere; }
+.wx-meta { margin-left: auto; flex: none; font-size: .82rem; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wx-edit { min-width: 44px; min-height: 44px; }
+.wx-note { display: block; width: 100%; margin: 6px 0 0; padding: 8px 10px; font: inherit; font-size: 16px; line-height: 1.5; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: inherit; resize: none; min-height: 44px; box-sizing: border-box; }
+.wx-h { margin: 18px 0 6px; font-size: 1rem; }
+.card.clickable { cursor: pointer; }
+@media (max-width: 460px) { .wx-meta { font-size: .78rem; } .wkp-head { gap: 6px; } }
