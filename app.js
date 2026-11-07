@@ -1885,11 +1885,14 @@ const exBlocksOf = (sun, dow) => (planEx(weekPlanOf(sun))[dow] || { blocks: [] }
 // 그 주에 보이는 과외 블록: 기본 시간표 − 이번 주만 지운 것 + 이번 주만 바꾼 것 + 이번 주만 더한 것
 function tutorBlocksOf(sun) {
   const t = planTutor(weekPlanOf(sun));
-  const out = baseBlocksFor(sun).filter((b) => !t.del.includes(b.id)).map((b) => {
+  const base = baseBlocksFor(sun);
+  const same = (x, y) => x.d === y.d && x.name === y.name && x.s === y.s && x.e === y.e && x.m === y.m;
+  const out = base.filter((b) => !t.del.includes(b.id)).map((b) => {
     const patch = cleanPatch(t.edit[b.id]);
-    return { ...b, ...patch, s: hhmm(patch.s !== undefined ? patch.s : b.s), e: hhmm(patch.e !== undefined ? patch.e : b.e), m: (patch.m !== undefined ? patch.m : b.m) === '대면' ? '대면' : '온라인', src: 'base', once: Object.keys(patch).length > 0 };
+    const v = { ...b, ...patch, s: hhmm(patch.s !== undefined ? patch.s : b.s), e: hhmm(patch.e !== undefined ? patch.e : b.e), m: (patch.m !== undefined ? patch.m : b.m) === '대면' ? '대면' : '온라인', src: 'base' };
+    return { ...v, once: !same(v, b) }; // 점선(once)은 "내용이 기본과 실제로 다른가"로 정해요. 이번 주 기록이 남아 있어도 내용이 같으면 아니에요
   });
-  t.add.forEach((b) => out.push({ ...b, src: 'add', once: true }));
+  t.add.forEach((b) => out.push({ ...b, src: 'add', once: !base.some((x) => same(x, b)) })); // 이번 주에 더했어도 기본에 똑같은 블록이 있으면 아니에요
   return out;
 }
 
