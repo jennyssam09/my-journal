@@ -947,3 +947,15 @@ textarea.rt-note-in { font: inherit; }
 .wx-h { margin: 18px 0 6px; font-size: 1rem; }
 .card.clickable { cursor: pointer; }
 @media (max-width: 460px) { .wx-meta { font-size: .78rem; } .wkp-head { gap: 6px; } }
+
+/* [기본] 한 줄씩 고치기 */
+.bl-list { margin: 14px 0 0; }
+.bl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); min-width: 0; }
+.bl-row select, .bl-row input { min-height: 44px; padding: 6px 8px; font: inherit; font-size: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: inherit; box-sizing: border-box; min-width: 0; }
+.bl-d { width: 4.2em; }
+.bl-n { flex: 1 1 8em; }
+.bl-t { display: inline-flex; align-items: center; gap: 4px; }
+.bl-t input { width: 7.6em; }
+.bl-m { width: 5.6em; }
+.bl-go { min-height: 44px; margin-left: auto; }
+.bl-lab { margin: 12px 0 6px; }
