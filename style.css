@@ -598,42 +598,8 @@ dialog.roomy { width: min(900px, 92vw); }
 .cal-mark.icon-only .cal-ico { margin-right: 2px; }
 
 /* ---------- 🤖 클로드에게 보내기 · 💬 받은 피드백 ---------- */
-.claude-fold { margin-top: 22px; }
-.claude-fold > summary { list-style: none; font-size: 1.05rem; font-weight: 700; color: var(--ink); min-height: 28px; }
-.claude-fold > summary::-webkit-details-marker { display: none; }
-.claude-fold > summary::before { content: '▸ '; color: var(--muted); }
-.claude-fold[open] > summary::before { content: '▾ '; }
-.claude-fold[open] > summary { margin-bottom: 10px; }
-.cl-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
-.cl-row .chip-label { min-width: 2.4em; }
-.claude-box .copy-text { margin-top: 10px; min-height: 260px; }
-.fb-fold { margin-top: 14px; padding: 10px 14px; border-radius: 14px; background: var(--bg); }
-.fb-fold > summary { color: var(--purple); font-weight: 700; }
-.fb-input { margin-top: 10px; }
-.fb-input .cl-row { margin-bottom: 4px; }
-.fb-ctx { margin: 4px 0 8px; }
 /* ③ 받은 피드백 */
-.fb-list { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
-.fb-list-title { margin: 0 0 8px; font-size: 1rem; color: var(--ink); }
-.fb-scopes { margin-bottom: 10px; }
-.fb-scopes .chip { min-width: 3em; text-align: center; }
-.fb-scope { font-size: 1rem; }
 /* ② 잘한 점 체크 목록 · ③ 카드의 💬 잘한 점 */
-.cl-count { margin: 8px 0 -2px; font-weight: 600; color: var(--purple); }
-.fb-strengths { margin: 10px 0 0; padding: 10px 14px; border-radius: 12px; background: var(--card); }
-.fb-str-h { font-weight: 700; font-size: .92rem; margin-bottom: 4px; }
-.fb-str { display: flex; align-items: flex-start; gap: 8px; padding: 3px 0; cursor: pointer; line-height: 1.5; }
-.fb-str input { width: 20px; height: 20px; margin-top: 3px; flex-shrink: 0; accent-color: var(--purple); }
-.fb-strengths-view { margin: 6px 0 4px; padding: 8px 14px; border-radius: 12px; background: var(--purple-soft); }
-.fb-str-title { font-weight: 700; font-size: .9rem; color: var(--purple); }
-.fb-str-list { margin: 4px 0 0; padding-left: 1.2em; line-height: 1.55; }
-.claude-common { white-space: pre-line; }
-.fb-list .empty { padding: 20px 10px; }
-.fb-list > .row { margin-top: 8px; }
-.fb-text-in { width: 100%; min-height: 150px; padding: 10px 14px; border: 1px solid transparent; border-radius: 12px; background: var(--card); resize: vertical; line-height: 1.55; }
-.fb-item .fb-q { margin: 4px 0; }
-.fb-answer.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.fb-badge { color: var(--purple); }
 .card-btns { align-items: center; }
 
 /* ---------- ☁ 구글 드라이브 동기화 (색은 위쪽 :root 의 변수만 써요) ---------- */
