@@ -62,7 +62,7 @@ const SCHEMAS = {
   //   예전 기록의 kind(요가·슬로조깅·근력·유산소)는 지우지 않고 그대로 두지만 화면에는 쓰지 않고, 새 기록의 kind 는 '운동'이에요.
   workout: {
     label: '운동 기록',
-    keep: [...Object.keys(RETIRED.workout), 'kind'], // 화면에서 뺀 칸(기분 · 종류)의 예전 값은 그대로 보관
+    keep: [...Object.keys(RETIRED.workout), 'kind', 'name'], // name(운동 이름)과 화면에서 뺀 칸(기분 · 종류)의 예전 값은 그대로 보관
     fields: [
       { key: 'date', label: '날짜', type: 'date', required: true },
       { key: 'distance', label: '거리 (km) - 선택', type: 'number', min: 0, step: 0.01, placeholder: '예: 3.2' },
@@ -510,6 +510,8 @@ const ui = {
   artOpen: null,      // 상세 창으로 열어 둔 그림 기록
   artPhoto: 0,        // 상세 창에서 보고 있는 사진 번호
   weekStart: null,      // 🗓 이번 주 · 🧘 운동 탭에서 보고 있는 주의 일요일 날짜 (null 이면 이번 주)
+  wxWeeks: 0,           // 🧘 운동 탭에서 보이는 지난 주 수 (0 이면 처음 4주, 더 보기로 4주씩)
+  wxFree: null,         // 한 운동 남기기 창의 대상 { date, id, fromDay }
   weekMode: null,       // 🗓 칩: 'week'([이번 주]) | 'base'([기본]). null 이면 이 기기에 기억해 둔 값 (다른 탭에 갔다 오면 [이번 주])
   wkAiWeek: null,       // 🗓 📥 클로드 시간표 붙여 넣기 창이 반영할 주(일요일 날짜)
   calMonth: null,       // 캘린더에서 보고 있는 달 (예: '2026-09')
@@ -794,18 +796,6 @@ function guideHTML(type, r, skip = [], opts = {}) {
     }
   });
   return `${tags.join('')}${blocks.join('')}`;
-}
-
-function workoutCard(r) {
-  const parts = [];
-  if (r.distance) parts.push(`${esc(fmtNum(r.distance))}km`);
-  return `<div class="card" data-rid="${esc(r.id)}">
-    <div class="item-head">
-      <div><span class="tag">운동</span> ${parts.join(' · ')} ${marksHTML(r)}</div>
-      ${actionButtons('workout', r.id)}
-    </div>
-    ${r.memo ? `<p class="pre">${esc(r.memo)}</p>` : ''}
-  </div>`;
 }
 
 const pieceButton = (p) => `<button type="button" class="piece-link" data-act="piece" data-piece="${esc(p)}">${esc(p)}</button>`;
@@ -1551,20 +1541,6 @@ function artNav(d) {
 // 열려 있는 상세 창을 새로 그려요 (피드백을 붙여 넣거나 고친 뒤)
 function refreshArtDetail() { if (dlg.open && ui.artOpen && dlg.querySelector('.art-detail')) openArt(ui.artOpen, ui.artPhoto); }
 
-// 캘린더 날짜 창 안의 그림 카드 (작은 사진 + 종류·한 줄. 사진을 누르면 상세 창)
-function artDayCard(r) {
-  const photos = artPhotos(r);
-  return `<div class="card art-day" data-rid="${esc(r.id)}">
-    <div class="item-head">
-      <div class="art-day-main">
-        <button type="button" class="art-day-thumb" data-act="artOpen" data-id="${esc(r.id)}" aria-label="그림 크게 보기">${photos[0] ? `<img src="${esc(photos[0])}" alt="">` : '🎨'}</button>
-        <div><div><span class="tag art-kind">${esc(artKindOf(r))}</span> ${marksHTML(r)}</div>${r.topic ? `<div class="pre">${esc(r.topic)}</div>` : ''}</div>
-      </div>
-      ${actionButtons('art', r.id)}
-    </div>
-  </div>`;
-}
-
 /* ---------------------------------------------------------------------
    10-1. 🗣 언어 (영어 · 일본어 · 내가 더한 언어). 언어마다 같은 모양이에요. 링크의 제목을 가져오는 등 밖으로 나가는 요청은 없어요.
    기록 하나 = 하루 · 언어 하나 (type 'lang': date · lang(언어 id) · listened · title · study · link · sum1~sum3 · images). 경제 루틴처럼 입력 창 없이 탭에서 바로 적어요.
@@ -1873,8 +1849,9 @@ function updateWeekPlan(sun, patch) {
 // 그 날짜의 운동 블록마다 체크로 읽히는 운동 기록 (블록 하나에 기록 하나).
 //   ① 표에서 만든 기록은 만들 때의 블록 번호(plan = 번호+1)의 블록에 붙고 ② 예전에 종류가 달랐던 기록은 같은 종류의 블록에 붙고
 //   ③ 나머지(운동 탭에서 남긴 기록 등)는 아직 짝이 없는 블록을 앞에서부터 채워요. 종류는 더 이상 나누지 않아요.
+const isFreeWorkout = (r) => !r.plan && hasValue(r.name); // "한 운동 남기기"로 만든 기록: 블록 빈자리를 채우지 않고 따로 한 줄이에요
 function dayAssign(date, blocks) {
-  const recs = ofType('workout').filter((r) => !r.sample && r.date === date).sort(byOldest);
+  const recs = ofType('workout').filter((r) => !r.sample && r.date === date && !isFreeWorkout(r)).sort(byOldest);
   const per = blocks.map(() => []);
   let left = [];
   recs.forEach((r) => { const k = typeof r.plan === 'number' ? r.plan - 1 : -1; if (k >= 0 && k < blocks.length && !per[k].length) per[k].push(r); else left.push(r); });
@@ -1887,6 +1864,19 @@ function dayAssign(date, blocks) {
   let n = 0;
   per.forEach((hit) => { if (!hit.length && n < left.length) { hit.push(left[n]); n += 1; } });
   return per;
+}
+// 블록에 붙지 못한 그날의 운동 기록들 (한 운동 남기기로 만든 것 + 블록보다 많이 남긴 예전 기록): 따로 줄로 보여요
+const dayExtras = (date, per) => {
+  const used = new Set(per.flat().map((r) => r.id));
+  return ofType('workout').filter((r) => !r.sample && r.date === date && !used.has(r.id)).sort(byOldest);
+};
+// 운동 기록의 이름: 저장한 name → (예전 기록은) 짝지은 블록 이름 → 메모 첫 줄 → "운동"
+function workoutName(r) {
+  if (hasValue(r.name)) return String(r.name).trim();
+  const blocks = r.date ? exBlocksOf(weekStartOf(r.date), parseDate(r.date).getDay()) : [];
+  if (blocks.length) { const i = dayAssign(r.date, blocks).findIndex((hit) => hit.some((x) => x.id === r.id)); if (i >= 0 && blocks[i].name) return blocks[i].name; }
+  if (hasValue(r.memo)) return String(r.memo).trim().split(/\n/)[0].slice(0, 30);
+  return EX_KIND;
 }
 // 블록마다 체크 켜짐 여부 (풀어 둔 표시가 있으면 꺼짐)
 const dayChecks = (date, dow, blocks, plan) => dayAssign(date, blocks).map((hit, i) => hit.length > 0 && !isSkipped(plan, dow, blocks[i], i));
@@ -1905,7 +1895,7 @@ async function setWeekCheck(date, idx, on) {
       const plan = weekPlanOf(sun);
       if (isSkipped(plan, dow, blk, idx)) { const gone = [dow, ...skipToks(dow, blk, idx)]; await updateWeekPlan(sun, (p) => { p.skip = p.skip.filter((x) => !gone.includes(x)); }); }
       if (has.length) { render(); return; } // 이 블록에 이미 운동 기록이 있으면 새로 만들지 않아요
-      const rec = { id: newId(), type: 'workout', date, kind: EX_KIND, plan: idx + 1, createdAt: Date.now(), updatedAt: Date.now() };
+      const rec = { id: newId(), type: 'workout', date, kind: EX_KIND, name: blk.name, plan: idx + 1, createdAt: Date.now(), updatedAt: Date.now() }; // name = 그 블록 이름
       assignStamp(rec);
       if (!(await saveRecord(rec))) { render(); return; }
       render(); refreshDay();
@@ -2610,45 +2600,111 @@ function renderWeek() {
    🧘 운동 탭: 그 주(일~토)의 운동 블록을 요일별 목록으로 보고, 줄을 눌러 "했어요" 체크해요.
    체크는 🗓 표에서 하던 것과 같은 함수(setWeekCheck)라서 운동 기록(plan = 블록 번호+1)이 생기고 지워져요. 몸무게·횟수·연속 같은 숫자는 없어요.
    --------------------------------------------------------------------- */
-function wxRowHTML(sun, d, b, i, on) {
-  const date = addDays(sun, d); const future = date > todayStr();
+// 계획 블록 한 줄 (체크 · ✎ 고치기 · 체크하면 아래에 한 줄 메모). 운동 탭과 📅 날짜 창이 같이 써요
+function wxRowHTML(date, b, i, on, hit, ico = '') {
+  const future = date > todayStr(); const d = parseDate(date).getDay();
   const meta = [blockTime(b), b.optional ? '선택' : ''].filter(Boolean).join(' · ');
-  const hit = on ? (dayAssign(date, exBlocksOf(sun, d))[i] || [])[0] : null;
   return `<div class="wx-row${on ? ' on' : ''}${b.optional ? ' opt' : ''}" data-wx="${d}:${i}">
     <div class="wx-line">
-      <button type="button" class="wx-main" data-act="wkExCheck" data-date="${date}" data-i="${i}" aria-pressed="${on ? 'true' : 'false'}"${future ? ' disabled aria-disabled="true"' : ''} aria-label="${esc(`${DOW[d]}요일 ${b.name}${meta ? ` ${meta}` : ''}${on ? ' (했어요)' : ''}`)}"><span class="wx-box" aria-hidden="true">${on ? '✓' : ''}</span><span class="wx-name">${esc(b.name)}</span>${meta ? `<span class="wx-meta">${esc(meta)}</span>` : ''}</button>
+      <button type="button" class="wx-main" data-act="wkExCheck" data-date="${date}" data-i="${i}" aria-pressed="${on ? 'true' : 'false'}"${future ? ' disabled aria-disabled="true"' : ''} aria-label="${esc(`${DOW[d]}요일 ${b.name}${meta ? ` ${meta}` : ''}${on ? ' (했어요)' : ''}`)}">${ico ? `<span class="wx-ico" aria-hidden="true">${ico}</span>` : ''}<span class="wx-box" aria-hidden="true">${on ? '✓' : ''}</span><span class="wx-name">${esc(b.name)}</span>${meta ? `<span class="wx-meta">${esc(meta)}</span>` : ''}</button>
       <button type="button" class="btn ghost small wx-edit" data-act="wkExEdit" data-date="${date}" data-i="${i}" aria-label="${esc(`${b.name} 고치기`)}">✎</button>
     </div>
-    ${hit ? `<textarea class="wx-note autogrow" rows="1" maxlength="400" data-wx-memo data-date="${date}" data-i="${i}" aria-label="${esc(`${b.name} 메모`)}" placeholder="메모 - 선택">${esc(hit.memo || '')}</textarea>` : ''}
+    ${on && hit ? `<textarea class="wx-note autogrow" rows="1" maxlength="400" data-wx-memo data-id="${esc(hit.id)}" aria-label="${esc(`${b.name} 메모`)}" placeholder="메모 - 선택">${esc(hit.memo || '')}</textarea>` : ''}
   </div>`;
 }
-function wxCardsHTML() {
-  const list = ofType('workout').filter((r) => !r.sample).sort(byNewest);
-  return dayGroupedHTML(list, (r) => workoutCard(r).replace('<div class="card" data-rid=', `<div class="card clickable" data-act="edit" data-type="workout" data-id="${esc(r.id)}" data-rid=`), EMPTY_TEXT.workout);
+// 계획 밖에서 남긴 운동 한 줄 (한 운동 남기기로 만든 것 · 블록에 붙지 못한 예전 기록). 체크를 풀면 그 기록을 지워요
+function wxExtraRowHTML(r, ico = '') {
+  const name = workoutName(r);
+  return `<div class="wx-row on extra" data-wx-rec="${esc(r.id)}">
+    <div class="wx-line">
+      <button type="button" class="wx-main" data-act="wxExtra" data-id="${esc(r.id)}" aria-pressed="true" aria-label="${esc(`${name} (했어요)`)}">${ico ? `<span class="wx-ico" aria-hidden="true">${ico}</span>` : ''}<span class="wx-box" aria-hidden="true">✓</span><span class="wx-name">${esc(name)}</span></button>
+      <button type="button" class="btn ghost small wx-edit" data-act="wxFreeEdit" data-id="${esc(r.id)}" data-date="${r.date}" aria-label="${esc(`${name} 이름 고치기`)}">✎</button>
+    </div>
+    <textarea class="wx-note autogrow" rows="1" maxlength="400" data-wx-memo data-id="${esc(r.id)}" aria-label="${esc(`${name} 메모`)}" placeholder="메모 - 선택">${esc(r.memo || '')}</textarea>
+  </div>`;
 }
+// 그날의 운동 줄들 (계획 블록 줄 + 계획 밖 줄). 미래 날짜는 블록 줄만 (체크는 막혀 있어요)
+function exDayRows(date, ico = '') {
+  const dow = parseDate(date).getDay(); const sun = weekStartOf(date);
+  const blocks = exBlocksOf(sun, dow); const plan = weekPlanOf(sun);
+  const per = dayAssign(date, blocks);
+  const on = per.map((hit, i) => hit.length > 0 && !isSkipped(plan, dow, blocks[i], i));
+  const extras = date > todayStr() ? [] : dayExtras(date, per);
+  return { html: blocks.map((b, i) => wxRowHTML(date, b, i, on[i], on[i] ? per[i][0] : null, ico)).join('') + extras.map((r) => wxExtraRowHTML(r, ico)).join(''), count: blocks.length + extras.length };
+}
+const WX_FIRST_WEEKS = 4; // 처음에 보이는 지난 주 수 (더 보기로 4주씩)
 function renderWorkout() {
   const today = todayStr();
   view.dataset.today = today;
-  const sun = weekStartOf(today); // 다른 탭처럼 주 이동 줄 없이 늘 이번 주만 보여요
+  const sun = weekStartOf(today); // 다른 탭처럼 주 이동 줄 없이 이번 주부터 아래로 지난 주가 이어져요
   ui.weekStart = null;
   const plan = weekPlanOf(sun);
   const memo = planMemo(plan);
-  const days = Array.from({ length: 7 }, (_, d) => {
-    const date = addDays(sun, d); const blocks = exBlocksOf(sun, d);
-    const checks = dayChecks(date, d, blocks, plan);
-    const x = parseDate(date);
-    return `<section class="wx-day${date === today ? ' today' : ''}${blocks.length ? '' : ' none'}" data-d="${d}">
-      <div class="wx-dh"><b class="wx-dow d${d}">${DOW[d]}</b><small>${x.getMonth() + 1}/${x.getDate()}</small><button type="button" class="btn ghost small wx-add" data-act="wkAddEx" data-date="${date}" aria-label="${esc(`${DOW[d]}요일에 운동 블록 더하기`)}">＋</button></div>
-      ${blocks.map((b, i) => wxRowHTML(sun, d, b, i, checks[i])).join('')}
+  const daySec = (date, past) => {
+    const rows = exDayRows(date);
+    if (past && !rows.count) return ''; // 지난 주는 블록도 기록도 없는 요일은 숨겨요
+    const x = parseDate(date); const d = x.getDay();
+    return `<section class="wx-day${date === today ? ' today' : ''}${rows.count ? '' : ' none'}" data-d="${d}">
+      <div class="wx-dh"><b class="wx-dow d${d}">${DOW[d]}</b><small>${x.getMonth() + 1}/${x.getDate()}</small>${date <= today ? `<button type="button" class="btn ghost small wx-add" data-act="wxFreeAdd" data-date="${date}" aria-label="${esc(`${DOW[d]}요일에 한 운동 남기기`)}">＋</button>` : ''}</div>
+      ${rows.html}
     </section>`;
-  }).join('');
+  };
+  const thisDays = Array.from({ length: 7 }, (_, d) => daySec(addDays(sun, d), false)).join('');
+  // 지난 주들 (최신 주가 위). 운동이 하나도 없는 주는 숨겨요
+  const n = ui.wxWeeks || WX_FIRST_WEEKS;
+  const earliest = [...ofType('workout').filter((r) => !r.sample).map((r) => weekStartOf(r.date)), ...records.filter((r) => r.type === 'weekPlan' && Object.keys(planEx(r)).length).map((r) => r.date)].sort()[0] || sun;
+  let past = '';
+  for (let k = 1; k <= n; k += 1) {
+    const w = addDays(sun, -7 * k);
+    const body = Array.from({ length: 7 }, (_, d) => daySec(addDays(w, d), true)).join('');
+    if (body) past += `<h3 class="wx-h">${esc(shortDay(w))} 주</h3><div class="wx-days">${body}</div>`;
+  }
+  const more = addDays(sun, -7 * n) > earliest;
   view.innerHTML = `
     <h2 class="page-title">운동</h2>
-    <p class="page-sub">이번 주 운동을 줄마다 눌러 체크해요. 운동 블록은 🗓 이번 주의 📥로 붙여 넣으면 여기에 나와요.</p>
+    <p class="page-sub">운동을 줄마다 눌러 체크해요. 운동 블록은 🗓 이번 주의 📥로 붙여 넣으면 여기에 나와요. 블록에 없는 운동은 ＋ 로 남겨요.</p>
     ${memo ? `<button type="button" class="card wx-memo" data-act="wkMemoEdit" aria-label="이 주 메모 고치기">${memoHTML(memo)}</button>` : ''}
-    <div class="wx-days">${days}</div>
-    <h3 class="wx-h">지난 운동 기록</h3>
-    <div id="wxCards">${wxCardsHTML()}</div>`;
+    <div class="wx-days">${thisDays}</div>
+    ${past}
+    ${more ? '<div class="row"><button type="button" class="btn ghost small" data-act="wxMore">더 보기</button></div>' : ''}`;
+}
+// 한 운동 남기기 / 이름 고치기: 이름만 적는 작은 창 → 그 날짜에 { type:'workout', name, date } 기록
+function openWxFree(date, id) {
+  const r = id ? records.find((x) => x.id === id) : null;
+  ui.wxFree = { date, id: r ? r.id : '', fromDay: dlg.open && !!dlg.querySelector('.day-list') };
+  openDlg(`<h2>${r ? '✎ 운동 이름 고치기' : '＋ 한 운동 남기기'}</h2>
+    <p class="meta" style="margin-top:0">${esc(dayLabel(date))}</p>
+    <form id="wxFreeForm" novalidate>
+      <div class="field"><label for="wx_name">운동 이름</label><input id="wx_name" type="text" maxlength="60" autocomplete="off" value="${esc(r && hasValue(r.name) ? r.name : '')}" placeholder="예: 산책, 스트레칭"></div>
+      <p class="error" id="wxErr" role="alert"></p>
+      <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">취소</button>${r ? '<button type="button" class="btn danger" data-act="wxFreeDel">지우기</button>' : ''}<button type="submit" class="btn">저장</button></div>
+    </form>`);
+}
+const wxFreeDone = () => { const w = ui.wxFree; ui.wxFree = null; render(); if (w && w.fromDay) openDay(w.date); else closeDlg(); };
+async function saveWxFree() {
+  const w = ui.wxFree; if (!w) return;
+  const name = $('#wx_name').value.trim().replace(/\s+/g, ' ');
+  if (!name) { $('#wxErr').textContent = '운동 이름을 적어 주세요.'; return; }
+  const old = w.id ? records.find((x) => x.id === w.id) : null;
+  if (old) { await saveRecord({ ...old, name, updatedAt: Date.now() }); wxFreeDone(); return; }
+  const rec = { id: newId(), type: 'workout', name, date: w.date, createdAt: Date.now(), updatedAt: Date.now() };
+  assignStamp(rec);
+  if (!(await saveRecord(rec))) return;
+  wxFreeDone();
+  afterNewRecord(rec); // 💮 도장 토스트
+}
+async function deleteWxFree() {
+  const w = ui.wxFree; if (!w || !w.id) return;
+  await deleteRecord(w.id);
+  wxFreeDone();
+}
+// 계획 밖 줄의 체크를 풀면 그 운동 기록을 지워요 (메모를 적어 둔 기록은 한 번 물어봐요)
+async function wxExtraToggle(id) {
+  const r = records.find((x) => x.id === id); if (!r) return;
+  if (hasValue(r.memo) && !confirm('적어 둔 메모가 있어요. 이 운동 기록을 지울까요?')) return;
+  await deleteRecord(id);
+  render(); refreshDay();
+  toast('운동 기록을 지웠어요.', 2000);
 }
 // 이 주 메모 고치기 (눌러서)
 function openWeekMemo() {
@@ -2669,16 +2725,13 @@ async function saveWeekMemo() {
 }
 // 체크된 줄의 메모: 입력이 끝나면 그 운동 기록의 memo 에 저장해요 (비워도 돼요)
 async function saveWxMemo(ta) {
-  const date = ta.dataset.date; const i = Number(ta.dataset.i);
-  const dow = parseDate(date).getDay(); const sun = weekStartOf(date);
-  const r = (dayAssign(date, exBlocksOf(sun, dow))[i] || [])[0];
+  const r = records.find((x) => x.id === ta.dataset.id);
   if (!r) return;
   const v = ta.value.trim();
   if ((r.memo || '') === v) return;
   const next = { ...r, memo: v, updatedAt: Date.now() };
   if (!v) delete next.memo;
   await saveRecord(next);
-  const box = $('#wxCards'); if (box) box.innerHTML = wxCardsHTML();
 }
 
 /* ---------------------------------------------------------------------
@@ -2708,7 +2761,7 @@ const iconOf = (r) => (catOf(r) || {}).icon || '📝';
 
 function calTitle(r) {
   switch (r.type) {
-    case 'workout': return '운동';
+    case 'workout': return workoutName(r);
     case 'violin': return r.kind === '레슨' ? '레슨' : (pieceNamesOf(r)[0] || '연습');
     case 'econRoutine': return '경제 루틴';
     case 'lang': return langMeta(r.lang).label;
@@ -2919,7 +2972,7 @@ function recapFirsts(all, ym) {
   if (lesson) push(lesson.date, '🎵', '첫 레슨 — 레슨 다녀온 날을 처음 남겼어요');
   // 🧘
   const wk = by((r) => r.type === 'workout');
-  if (wk[0]) push(wk[0].date, '🧘', '운동 — 처음 한 운동이에요');
+  if (wk[0]) push(wk[0].date, '🧘', `${oneLine(workoutName(wk[0]))} — 처음 한 운동이에요`);
   // 📚
   const routine = by((r) => r.type === 'econRoutine' && routineIcons(r).length);
   if (routine[0]) push(routine[0].date, '📚', '경제 루틴 — 첫 기록이에요');
@@ -2981,40 +3034,30 @@ function openRecap() {
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`, true);
 }
 
-// 날짜 창 안의 경제 루틴 카드 (체크한 것·읽은 뉴스레터·한 줄·태그를 보여줘요. 체크 켜고 끄기는 경제 화면의 "이번 주"에서 해요)
-function routineDayCard(r) {
-  const items = ECON_ROUTINES.filter((x) => routineChecked(r, x.id));
-  const letters = Array.isArray(r.letters) ? r.letters : [];
-  return `<div class="card" data-rid="${esc(r.id)}">
-    <div><span class="tag">✅ 경제 루틴</span> ${items.length ? items.map((x) => `<span class="rt-day-item">${x.icon} ${esc(x.label)}</span>`).join(' · ') : '<span class="meta">체크한 항목은 없어요</span>'}</div>
-    ${letters.length ? `<div class="chip-line"><span class="chip-label">읽은 뉴스레터</span>${letters.map((c) => `<span class="tag chip-tag">${esc(c)}</span>`).join('')}</div>` : ''}
-    ${hasValue(r.note) ? textBlock('오늘 메모', r.note) : ''}
-  </div>`;
-}
-
 // 날짜를 누르면 그날의 기록을 한 창에 모아 보여줘요
 //   오늘과 지난 날짜에는 ✅ 경제 루틴 체크 목록(뉴스레터 칩 포함)이 나와서 그 자리에서 켜고 끌 수 있어요. 미래 날짜에는 없어요.
+// 날짜 창의 한 줄: 한 건 ✓ + 내용, 안 한 건 흐리게 ("＋ …")
+const dlRow = (ico, done, text, act, attrs = '') => `<button type="button" class="dl-main ${done ? 'done' : 'dim'}" data-act="${act}" ${attrs}><span class="dl-ico" aria-hidden="true">${ico}</span>${done ? '<span class="dl-mark" aria-hidden="true">✓</span>' : ''}<span class="dl-txt">${esc(text)}</span></button>`;
+const langLine = (r) => { const t = hasValue(r.title) ? oneLine(r.title) : (hasValue(r.study) ? String(r.study).trim().split(/\n/)[0] : ''); return t || (r.listened ? '들었어요' : domainOf(r.link) || '기록'); };
+// 📅 날짜 창 = 영역별 한 줄 목록 (운동 · 연습 · 레슨 · 경제 · 언어 · 그림). 미래 날짜에는 그날 운동 블록 줄만 보여요 (체크는 막혀 있어요)
 function openDay(date) {
   ui.dayOpen = date;
-  const list = records.filter((r) => r.date === date && catOf(r)).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const card = { workout: workoutCard, violin: violinCard, econRoutine: routineDayCard, lang: langCard, art: artDayCard };
   const open = date <= todayStr();
-  const rt = routineOn(date);
-  const cards = list.filter((r) => r.type !== 'econRoutine' || !open).map((r) => card[r.type](r));
-  const routineSec = open ? `<section class="card day-routine"${rt ? ` data-rid="${esc(rt.id)}"` : ''}>
-      <div><span class="tag">✅ 경제 루틴</span></div>
-      ${routineRowsHTML(date)}
-      ${rt && hasValue(rt.note) ? textBlock('오늘 메모', rt.note) : ''}
-    </section>` : '';
-  const lessonSec = open ? `<section class="card day-lesson">${lessonRowHTML(date)}</section>` : '';
-  const add = [['workout', '운동'], ['violin', '바이올린']]
-    .map(([t, l]) => `<button type="button" class="btn ghost small" data-act="addOn" data-type="${t}" data-date="${date}">＋ ${l}</button>`).join('')
-    + `<button type="button" class="btn ghost small" data-act="addLang" data-date="${date}">＋ 언어</button>`;
+  const ex = exDayRows(date, '🧘');
+  const rows = [];
+  rows.push(ex.count ? ex.html : (open ? dlRow('🧘', false, '＋ 한 운동 남기기', 'wxFreeAdd', `data-date="${date}"`) : ''));
+  if (open) {
+    const prac = records.filter((r) => r.type === 'violin' && r.kind !== '레슨' && r.date === date).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    rows.push(prac.length ? prac.map((r) => dlRow('🎻', true, [pieceNamesOf(r)[0] || '연습', amountOf(r) ? amountOf(r).label : ''].filter(Boolean).join(' · '), 'edit', `data-type="violin" data-id="${esc(r.id)}"`)).join('') : dlRow('🎻', false, '＋ 연습 남기기', 'addOn', `data-type="violin" data-date="${date}"`));
+    rows.push(lessonRowHTML(date));
+    const rt = routineOn(date);
+    rows.push(routineRowsHTML(date) + (rt && hasValue(rt.note) ? `<p class="meta dl-note">${esc(oneLine(rt.note))}</p>` : ''));
+    rows.push(visibleLangs().map((l) => { const r = langOn(date, l.id); return r ? dlRow('🗣', true, `${l.name} · ${langLine(r)}`, 'edit', `data-type="lang" data-id="${esc(r.id)}"`) : dlRow('🗣', false, `＋ ${l.name}`, 'dayLang', `data-date="${date}" data-lang="${esc(l.id)}"`); }).join(''));
+    rows.push(records.filter((r) => r.type === 'art' && r.date === date).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).map((r) => dlRow('🎨', true, r.topic ? oneLine(r.topic) : artKindOf(r), 'artOpen', `data-id="${esc(r.id)}"`)).join(''));
+  } else if (!ex.count) rows.push('<p class="meta">아직 오지 않은 날이에요.</p>');
   openDlg(`
     <h2>${esc(dayLabel(date))}</h2>
-    <div class="day-list">${cards.join('')}${!list.length ? '<div class="empty">기록이 없어요.</div>' : ''}${routineSec}${lessonSec}</div>
-    <div class="label" style="margin:14px 0 6px">이 날짜에 기록 더하기</div>
-    <div class="row actions-row">${add}</div>
+    <div class="day-list day-lines">${rows.join('')}</div>
     ${ui.tab === 'week' ? `    <div class="label" style="margin:14px 0 6px">이 요일 시간표에 과외 블록 더하기</div>
     <div class="row actions-row"><button type="button" class="btn ghost small" data-act="wkAddTutor" data-date="${date}">＋ 이 요일에 과외 블록</button></div>` : ''}
     <div class="dlg-actions"><button type="button" class="btn ghost" data-act="closeDlg">닫기</button></div>`, true);
@@ -3117,8 +3160,6 @@ function pickFromBag(area, pool) {
 const recentPraise = () => { const b = stampBagRead(); return Array.isArray(b._recent) ? b._recent : []; };
 function rememberPraise(text) { const bag = stampBagRead(); stampBagWrite({ ...bag, _recent: [...recentPraise(), text].slice(-8) }); }
 
-// 칭찬으로 써도 되는 글인지: 숫자 · 비교 · 할 일 · 재촉하는 말이 들어 있으면 쓰지 않아요 (클로드가 써 준 글을 거를 때)
-const PRAISE_BAD = /[0-9０-９]|보다|지난|목표|점수|대비|비교|평균|연속|해\s?보세요|하세요|하면 좋|하길|필요|서둘|빨리|어서|꼭 |늘었|늘려|줄었|줄여|더 해|다음엔|다음에는|다음 /;
 
 const STAMP_AREA_LABEL = { practice: '바이올린', lesson: '바이올린', workout: '운동', routine: '경제', lang: '언어', art: '그림' };
 // 그 기록에 맞춘 문장들 (조건이 맞는 것만)
@@ -3210,7 +3251,7 @@ function savedLine(rec) {
   const join = (...a) => a.filter(Boolean).join(' · ');
   switch (rec.type) {
     case 'violin': return rec.kind === '레슨' ? '🎵 레슨' : join(pieceNamesOf(rec)[0], amount); // 첫 교재의 곡(없으면 그 밖에 연습한 곡) · 연습량
-    case 'workout': return join('운동', rec.distance ? `${fmtNum(rec.distance)}km` : '', amount);
+    case 'workout': return workoutName(rec); // 운동 이름만 (거리 · 운동량은 줄에 보이지 않아요)
     case 'econRoutine': return routineIcons(rec).join(' '); // 체크한 항목 (🎧 📮)
     case 'lang': return join(langMeta(rec.lang).label, rec.listened ? '🎧' : '', rec.title ? oneLine(rec.title) : '', domainOf(rec.link));
     case 'art': return join(artKindOf(rec), amount);
@@ -5068,7 +5109,11 @@ document.addEventListener('click', async (e) => {
     case 'wkExEdit': openExEdit(el.dataset.date, Number(el.dataset.i || 0)); break;
     case 'wkMemoEdit': openWeekMemo(); break;
     case 'wkAddTutor': openBlockAdd('tutor', el.dataset.date); break;
-    case 'wkAddEx': openBlockAdd('ex', el.dataset.date); break;
+    case 'wxFreeAdd': openWxFree(el.dataset.date); break;
+    case 'wxFreeEdit': openWxFree(el.dataset.date, id); break;
+    case 'wxFreeDel': await deleteWxFree(); break;
+    case 'wxExtra': await wxExtraToggle(id); break;
+    case 'wxMore': ui.wxWeeks = (ui.wxWeeks || WX_FIRST_WEEKS) + 4; render(); break;
     case 'wkBlockDel': await deleteWeekBlock(el.dataset.scope); break;
     case 'wkText': openWeekAi(true); break;
     case 'wkAi': openWeekAi(); break;
@@ -5115,6 +5160,7 @@ document.addEventListener('click', async (e) => {
       break;
     case 'calDay': openDay(el.dataset.date); break;
     case 'addOn': openForm(type, undefined, el.dataset.date); break;
+    case 'dayLang': openLangFor(el.dataset.date, el.dataset.lang); break; // 날짜 창의 "＋ 영어": 그 날짜 · 그 언어로 입력 창
     case 'calShift': ui.calMonth = shiftMonth(ui.calMonth, Number(el.dataset.d)); render(); break;
     case 'calToday': { // 이번 달로 가기만 해요 (이미 이번 달이면 아무 일도 없어요)
       const ym = todayStr().slice(0, 7);
@@ -5263,6 +5309,7 @@ document.addEventListener('submit', (e) => {
   if (f.id === 'recForm') { e.preventDefault(); once(f, () => submitForm(f)); }
   else if (f.id === 'bookAddForm') { e.preventDefault(); once(f, () => addBook(f.elements[0].value)); }
   else if (f.id === 'wkBlockForm') { e.preventDefault(); const sc = e.submitter && e.submitter.value; once(f, () => saveWeekBlock(sc)); }
+  else if (f.id === 'wxFreeForm') { e.preventDefault(); once(f, () => saveWxFree()); }
   else if (f.id === 'wkMemoForm') { e.preventDefault(); once(f, () => saveWeekMemo()); }
   else if (f.id === 'langAddForm') { e.preventDefault(); once(f, async () => { await addLanguage(f.elements.name.value, f.elements.label.value); if (!$('#langMsg') || !$('#langMsg').textContent) { const a = $('#langAddForm'); if (a) a.reset(); } }); }
   else if (f.id === 'langForm') { e.preventDefault(); once(f, () => saveLangForm(f)); }

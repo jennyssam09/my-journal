@@ -597,9 +597,6 @@ dialog.roomy { width: min(900px, 92vw); }
 .multi-in, .field .multi-in { margin-bottom: 6px; }
 .cal-mark.icon-only .cal-ico { margin-right: 2px; }
 
-/* ---------- 🤖 클로드에게 보내기 · 💬 받은 피드백 ---------- */
-/* ③ 받은 피드백 */
-/* ② 잘한 점 체크 목록 · ③ 카드의 💬 잘한 점 */
 .card-btns { align-items: center; }
 
 /* ---------- ☁ 구글 드라이브 동기화 (색은 위쪽 :root 의 변수만 써요) ---------- */
@@ -925,3 +922,30 @@ textarea.rt-note-in { font: inherit; }
 .bl-m { width: 5.6em; }
 .bl-go { min-height: 44px; margin-left: auto; }
 .bl-lab { margin: 12px 0 6px; }
+
+/* 📅 날짜 창 = 영역별 한 줄 목록 (줄 높이 44px 안팎, 체크 칸 작게) */
+.day-lines { display: flex; flex-direction: column; gap: 4px; }
+.day-lines .rt-list { gap: 4px; margin: 0; }
+.day-lines .rt-row { min-height: 44px; padding: 2px 8px; margin: 0; border-radius: 10px; }
+.day-lines .rt-main { min-height: 40px; gap: 8px; }
+.day-lines .rt-check { width: 22px; height: 22px; }
+.day-lines .rt-icon { font-size: 1rem; }
+.day-lines .rt-chips { gap: 4px; }
+.day-lines .rt-chips .chip { min-height: 32px; padding: 2px 10px; }
+.day-lines .lesson-line { margin: 0; }
+.dl-main { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 10px; text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; min-width: 0; }
+.dl-main.done { background: var(--purple-soft); border-color: transparent; font-weight: 600; }
+.dl-main.dim { color: var(--muted); background: transparent; border-style: dashed; opacity: .75; }
+.dl-ico { flex: none; width: 1.4em; text-align: center; }
+.dl-mark { flex: none; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: var(--card); color: var(--purple); font-weight: 800; font-size: .85rem; }
+.dl-txt { min-width: 0; overflow-wrap: anywhere; }
+.dl-note { margin: 0 0 2px 10px; font-size: .8rem; }
+.day-lines .wx-row { margin: 0; }
+.day-lines .wx-main { min-height: 44px; padding: 2px 10px; }
+.day-lines .wx-box { width: 22px; height: 22px; }
+.wx-ico { flex: none; width: 1.4em; text-align: center; }
+.day-lines .wx-note { margin-top: 4px; }
+.day-lines .rt-row { flex-wrap: nowrap; gap: 6px 10px; }
+.day-lines .rt-label { font-size: .98rem; white-space: nowrap; }
+.day-lines .rt-chips { flex-wrap: nowrap; margin-left: auto; }
+.day-lines .rt-chips .chip { font-size: .8rem; white-space: nowrap; min-height: 32px; padding: 2px 8px; }
